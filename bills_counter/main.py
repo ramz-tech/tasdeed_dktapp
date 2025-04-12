@@ -1,14 +1,12 @@
 import sys
 import os
-import random
-import pandas as pd
-from datetime import datetime
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QFileDialog,
     QProgressBar, QMessageBox
 )
-from PyQt5.QtGui import QPixmap, QIcon
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt, QTimer
+from logic import load_accounts, generate_bill, save_to_excel
 
 class BillCollectorApp(QWidget):
     def __init__(self):
@@ -85,7 +83,7 @@ class BillCollectorApp(QWidget):
     def load_excel(self):
         path, _ = QFileDialog.getOpenFileName(self, "Open Excel File", "", "Excel Files (*.xlsx)")
         if path:
-            self.accounts_df = pd.read_excel(path)
+            self.accounts_df = load_accounts(path)
             self.file_label.setText(os.path.basename(path))
             self.collect_button.setEnabled(True)
 
@@ -107,23 +105,13 @@ class BillCollectorApp(QWidget):
 
         account = self.accounts[self.current_index]
         try:
-            if pd.isnull(account) or not str(account).isdigit():
-                raise ValueError("Invalid or missing account number.")
-
-            bill = {
-                "account_number": account,
-                "bill_id": random.randint(100000000, 999999999),
-                "bill_date": datetime.now().date(),
-                "consumption_kwh": round(random.uniform(100, 1500), 2),
-                "rate_per_kwh": round(random.uniform(0.1, 0.3), 2),
-            }
-            bill["total_amount"] = round(bill["consumption_kwh"] * bill["rate_per_kwh"], 2)
+            bill = generate_bill(account)
             self.success_bills_df.append(bill)
         except Exception as e:
             self.failed_accounts.append({
                 "account_number": account,
                 "bill_id": None,
-                "bill_date": datetime.now().date(),
+                "bill_date": None,
                 "consumption_kwh": None,
                 "rate_per_kwh": None,
                 "total_amount": None,
@@ -146,7 +134,7 @@ class BillCollectorApp(QWidget):
     def download_bills(self):
         path, _ = QFileDialog.getSaveFileName(self, "Save File", "success_bills.xlsx", "Excel Files (*.xlsx)")
         if path:
-            pd.DataFrame(self.success_bills_df).to_excel(path, index=False)
+            save_to_excel(self.success_bills_df, path)
             QMessageBox.information(self, "Saved", "Bills saved successfully!")
 
     def download_error_report(self):
@@ -156,7 +144,7 @@ class BillCollectorApp(QWidget):
 
         path, _ = QFileDialog.getSaveFileName(self, "Save File", "error_report.xlsx", "Excel Files (*.xlsx)")
         if path:
-            pd.DataFrame(self.failed_accounts).to_excel(path, index=False)
+            save_to_excel(self.failed_accounts, path)
             QMessageBox.information(self, "Saved", "Error report saved successfully!")
 
 if __name__ == '__main__':
