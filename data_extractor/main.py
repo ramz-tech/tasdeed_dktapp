@@ -1,55 +1,63 @@
-import time
+from data_extractor.get_exact_pg import PortalClient
+import asyncio
 
-from playwright.sync_api import sync_playwright
+import logging
 
-USERNAME = "emzec"
-PASSWORD = "emzec"
 
-r = "YzH3JukRfPchf31k2aA3nZRDsvL4O%252BTR5gC1o8iBA9aL9vRlgtqwrjIf6rIRBJ3FQsZojHtD5h%252Fv%252Bb9BPN0MQZyHlCqIKxal%252FhfMHID%252FbNIjzedVCqd2mJYwEnlbmFrCzVvqR7KIny6WQfyQyTLjUnHrP7NmXoh3WF7ell5zxoS8sOHooO8Wv3%252B%252B%252Bnmj08rR"
-def fetch_document_page_data():
-    with sync_playwright() as p:
-        # 1. Launch the browser and create a fresh context (for session storage).
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context()
-        page = context.new_page()
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-        # 2. Go to login page and log in.
-        page.goto("http://172.16.136.81/Account/Login")
-        page.wait_for_selector("input#Username", state="visible")
-        page.fill("input#Username", USERNAME)
-        page.fill("input#Password", PASSWORD)
 
-        # If there's a 'Login' button with these classes
-        page.wait_for_selector("button.btn.btn-primary.btn-block", state="visible")
-        page.click("button.btn.btn-primary.btn-block")
+async def run(username: str , password: str, accounts_list: list[str]):
+    # Instantiate PortalClient with credentials and account number.
+    client = PortalClient(username=username, password=password, cookies=[])
+    async with client:
+        # Step 1: Login
+        await client.login()
 
-        # Wait for the page to fully load after login
-        page.wait_for_load_state("networkidle")
+        for account_no in accounts_list:
+            try:
+                # Step 2: Search by text to get customer ID
+                customer_id = await client.search_by_text(account_no)
 
-        # 3. Navigate to the Documents page (optional if needed).
-        page.goto(f"http://172.16.136.81/DOCUMENTS?r={r}")
+                # Step 3: Search by ID to extract necessary parameters
+                params = await client.search_by_id(customer_id)
 
-        # Log all network requests
-        page.on("request", lambda request: print(f"Request: {request.method} {request.url}"))
+                # Step 4: Create Navigation URL and extract r value
+                r_value = await client.create_navigation_url(params)
 
-        # Log all network responses
-        page.on("response", lambda response: print(f"Response: {response.status} {response.url}"))
+                # Step 5: Navigate to the documents page
+                await client.navigate_to_documents_page(r_value)
 
-        page.wait_for_load_state("networkidle")
+                # Step 6: Fetch document data from API
+                document_data = await client.fetch_document_data()
+                documents = document_data.get("Data", {}).get("Documents", [])
+                if not documents:
+                    logger.error("No documents found in document data.")
+                    return
 
-        # 4. Reuse the same session to call the API endpoint.
-        response = context.request.get(
-            "http://172.16.136.81/api/DocumentApi/GetDocumentPageData?categoryCode=DOCUMENT_CATEGORY&typeCode=DOCUMENT_TYPE"
-        )
-        time.sleep(30)
-        # 5. Print status, check success, and print the JSON response.
-        print("Status:", response.status)       # e.g. 200
-        print("OK?   :", response.ok)           # True if 2xx
-        data = response.json()
-        print("Response JSON:", data)
+                # step 7: Handel the right document
+                document = documents[-1]
+                creation_date = document.get('CreationDate')
+                if not creation_date:
+                    logger.error("Creation date missing from document data.")
+                    return
 
-        # 6. Close browser
-        browser.close()
+                try:
+                    if not PortalClient.is_in_current_month(creation_date):
+                        logger.info("Document is not from the current month. Aborting further PDF fetch.")
+                        return
+                except ValueError as e:
+                    logger.error(f"Date format error: {e}")
+                    return
 
-if __name__ == "__main__":
-    fetch_document_page_data()
+                # Step 8: Fetch PDF data for the document and save it
+                doc_id = document.get("Id")
+                pdf_data = await client.fetch_pdf_data(document_id=doc_id)
+                await client.save_pdf(pdf_data, filepath=f'{doc_id}.pdf')
+                logger.info(f"PDF saved successfully for document ID {doc_id}.")
+            except Exception as e:
+                logger.error(f"An error occurred: {e}")
+                continue
+
