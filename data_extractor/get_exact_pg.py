@@ -3,47 +3,39 @@ import base64
 from urllib.parse import urlparse, parse_qs
 
 from playwright.async_api import async_playwright
-# test
+
 
 USERNAME = "emzec"
 PASSWORD = "emzec"
 # Example: cookies = [{"name": "cookie_name", "value": "cookie_value", "domain": "172.16.136.81", "path": "/"}, ...]
 cookies = []  # Insert cookie dictionaries if necessary
+account_no = "q72272"
 
-
-async def main():
+async def main(strAccount_no: str):
     async with async_playwright() as p:
-        # Launch the browser (set headless=False for debugging)
+
+        # Launch the browser and Create a browser context
         browser = await p.chromium.launch(headless=True)
-        # Create a browser context (set ignore_https_errors=True if needed)
         context = await browser.new_context(ignore_https_errors=True)
         page = await context.new_page()
 
         # ----- Step 1. Login to the portal -----
         login_url = "http://172.16.136.81/Account/Login"
         await page.goto(login_url)
-        # Wait for username input to be visible and fill in credentials
         await page.wait_for_selector("input#Username", state="visible")
         await page.fill("input#Username", USERNAME)
         await page.fill("input#Password", PASSWORD)
-        # Wait for the login button to be visible and click it
         await page.wait_for_selector("button.btn.btn-primary.btn-block", state="visible")
         await page.click("button.btn.btn-primary.btn-block")
-
-        # Wait for network activity to settle (i.e. the login to finish)
         await page.wait_for_load_state("networkidle")
 
-        # Optionally, add external cookies if you have them
-        if cookies:
-            await context.add_cookies(cookies)
 
         # ----- Step 2. Call SearchByText API -----
-        search_text = "q72272"
+        search_text = account_no 
         search_url = f"http://172.16.136.81/api/SearchApi/SearchByText?text={search_text}"
         search_response = await context.request.get(search_url)
         search_json = await search_response.json()
-
-        # Extract Customer ID from the "Customers" array returned in "Data"
+        # Extract Customer ID
         customer_id = search_json["Data"]["Customers"][0]["Id"]
         print(f"Customer ID from SearchByText: {customer_id}")
 
@@ -54,29 +46,27 @@ async def main():
         data = search_by_id_json["Data"]
 
         # Extract IDs and extra parameters from the JSON response.
-        # "ca": Customer ID (from Customers array)
+        # "ca": Customer ID
+        # "ct": Customer Type
+        # "p_val": Contacts Id
+        # "st": Contacts Context
+        # "s", "ua" and "pt": site ID, AccountId and its ProductType 
         ca = data["Customers"][0]["Id"]
-
-        # "p": Contact ID and its "Context" (we expect at least one Contact)
+        ct = data["Customers"][0]["CustomerType"]
         if data["Contacts"]:
             p_val = data["Contacts"][0]["Id"]
-            st = data["Contacts"][0]["Context"]  # Expected to be "Contact"
+            st = data["Contacts"][0]["Context"] 
         else:
             print("No contacts found in the response.")
             return
-
-        # "s" and "ua": site ID and its AccountId (from Sites array)
         if data["Sites"]:
             site = data["Sites"][0]
             s = site.get("Id")
             ua = site.get("AccountId")
-            pt = site.get("ProductType")  # e.g., "POWER"
+            pt = site.get("ProductType") 
         else:
             print("No site data found in the response.")
             return
-
-        # "ct": Customer Type (from Customers array, e.g. "COMPANY")
-        ct = data["Customers"][0]["CustomerType"]
 
         print(f"Extracted values: p = {p_val}, ca = {ca}, s = {s}, ua = {ua}, pt = {pt}, ct = {ct}, st = {st}")
 
@@ -90,8 +80,7 @@ async def main():
         print(f"Navigation URL returned: {nav_text}")
 
         # Parse the returned URL to extract the "r" query parameter.
-        # The returned string is assumed to be something like "/CONTACTS/CONTACTSUMMARY?r=someEncodedValue"
-        parsed = urlparse("http://dummy" + nav_text)  # add dummy base to parse properly
+        parsed = urlparse("http://dummy" + nav_text)  
         qs = parse_qs(parsed.query)
         r_value_list = qs.get("r")
         if not r_value_list:
