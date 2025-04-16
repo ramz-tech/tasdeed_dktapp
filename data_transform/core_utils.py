@@ -4,14 +4,19 @@ import fitz
 import os
 import io
 import csv
+import logging
 from .pdf_typs import pdf_types
 from typing import Dict, Optional, List
+
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def save_text_to_csv(output_directory, extracted_text):
     # Ensure the output directory exists, create it if not
     if not os.path.exists(output_directory):
         os.makedirs(output_directory)
-        print(f"Created directory: {output_directory}")
+        logger.info(f"Created directory: {output_directory}")
 
     csv_filename = 'output.csv'
     csv_path = os.path.join(output_directory, csv_filename)
@@ -32,23 +37,25 @@ def save_text_to_csv(output_directory, extracted_text):
         # Write the extracted data (as a row in the CSV)
         writer.writerow(extracted_data)
 
-    print(f"Appended extracted data to {csv_path}")
+    logger.info(f"Appended extracted data to {csv_path}")
+
 def delete_pdf(pdf_path):
     try:
         os.remove(pdf_path)
-        print(f"Deleted PDF file at {pdf_path}")
+        logger.info(f"Deleted PDF file at {pdf_path}")
     except FileNotFoundError:
-        print(f"File {pdf_path} not found, cannot delete.")
+        logger.warning(f"File {pdf_path} not found, cannot delete.")
     except Exception as e:
-        print(f"An error occurred while trying to delete {pdf_path}: {str(e)}")
-def split_string(string):
+        logger.error(f"An error occurred while trying to delete {pdf_path}: {str(e)}")
 
-  pattern = r"-"
-  matches = re.finditer(pattern, string)
-  last_index = len(string)
-  for match in matches:
-    last_index = match.start()
-  return string[last_index:]
+def split_string(string):
+    pattern = r"-"
+    matches = re.finditer(pattern, string)
+    last_index = len(string)
+    for match in matches:
+        last_index = match.start()
+    return string[last_index:]
+
 def extract_text_by_coordinates(pdf_path, page_num, rect):
     """
     Extracts text from a specified rectangular area on a PDF page.
@@ -64,6 +71,7 @@ def extract_text_by_coordinates(pdf_path, page_num, rect):
     text = page.get_text("text", clip=rect_region)
     pdf_document.close()
     return text
+
 def is_arabic(text: str) -> bool:
     """
     Checks if the given text contains Arabic characters.
@@ -82,16 +90,20 @@ def is_arabic(text: str) -> bool:
         if '\u0600' <= char <= '\u06FF' or '\u0750' <= char <= '\u077F' or '\u08A0' <= char <= '\u08FF' or '\uFB50' <= char <= '\uFDFF' or '\uFE70' <= char <= '\uFEFF':
             return True
     return False
+
 def handle_reverse_replace_newline(text):
     return text[::-1].replace('\n', '')
+
 def handle_split_index(text, index):
     parts = text.split('\n')
     if len(parts) > index:
         return unicodedata.normalize('NFKC', parts[index])
     else:
         return None
+
 def handle_replace_newline(text):
     return unicodedata.normalize('NFKC', text.replace('\n', ''))
+
 def handle_reading_type(text):
     out_text = text.replace('\n', '')
     raTy = out_text.split("-")
@@ -103,27 +115,25 @@ def handle_reading_type(text):
             return f"{raTy[0]} - {unicodedata.normalize('NFKC', raTy[1])}"
         else:
             return unicodedata.normalize('NFKC', out_text)
+
 def extract_text_by_coordinates_new(page, coordinates):
     rect = fitz.Rect(coordinates)
     text = page.get_textbox(rect)
     return text
+
 def determine_pdf_type(page):
-    # doc = fitz.open(pdf_file)
-    # page_number = 0  # Adjust if necessary
-    # page = doc[page_number]
-    # Coordinates and checks to determine PDF type
     thabit_coordinates = (16.98, 198.00, 169.96, 306.00)
-    #TODO: update this coordinates
     nama_vat_coordinates = (57.11219787597656, 142.0579833984375, 133.68218994140625, 159.81597900390625)
     is_thabit = extract_text_by_coordinates_new(page, thabit_coordinates)
     is_nama_vat = extract_text_by_coordinates_new(page, nama_vat_coordinates)
-    # doc.close()
+
     if "Thabit" in is_thabit:
         return 'new_nama'
     elif ('1100004061' in is_nama_vat) and ("Thabit" not in is_thabit):
         return 'old_nama'
     else:
         return 'dofar'
+
 def extract_pdf_data(pdf_file):
     doc = fitz.open(pdf_file)
     data = {}
@@ -141,7 +151,7 @@ def extract_pdf_data(pdf_file):
                 value = handler(extracted_text)
                 page_data[field_name] = value
             except Exception as e:
-                print(f"Error processing field '{field_name}': {e}")
+                logger.error(f"Error processing field '{field_name}': {e}")
                 page_data[field_name] = None
         data[num] = page_data
         num += 1
@@ -187,7 +197,6 @@ def is_float(string):
         return True
     except ValueError:
         return False
-
 
 def generate_csv_from_docs(docs: List[Dict]) -> Optional[io.StringIO]:
     """
