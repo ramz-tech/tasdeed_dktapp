@@ -100,17 +100,18 @@ async def main(user_type: str, accounts_list: list[str], output_directory: str):
                 # Step 8: Fetch PDF data for the document and save it
                 doc_id = document.get("Id")
                 pdf_data = await client.fetch_pdf_data(document_id=doc_id)
-                await client.save_pdf(pdf_data, filepath=f'./data_extractor/{doc_id}.pdf')
+                await client.save_pdf(pdf_data, filepath=f'./data_extractor/{doc_id}.pdf') # TODO: change the fixed path to the dynamic one
                 logger.info(f"PDF saved successfully for document ID {doc_id}.")
 
 
                 # Step 9: Extract text from the PDF
-                extracted_data =  extract_pdf_data(f'./data_extractor/{doc_id}.pdf')
+                extracted_data =  extract_pdf_data(f'./data_extractor/{doc_id}.pdf') # TODO: change the fixed path to the dynamic one
 
-                # Step 10: Save extracted text to CSV TODO: here we need to insert the data to the file if it is already exist
+                # Step 10: Save extracted text to CSV
                 save_text_to_csv(output_directory, extracted_data)
                 logger.info(f"Data saved successfully for account number {account_no}.")
-                delete_pdf(f'./data_extractor/{doc_id}.pdf')
+
+                delete_pdf(f'./data_extractor/{doc_id}.pdf') # TODO: change the fixed path to the dynamic one
                 logger.info(f"PDF deleted successfully for document ID {doc_id}.")
 
 
@@ -124,9 +125,9 @@ async def main(user_type: str, accounts_list: list[str], output_directory: str):
 
 if __name__ == "__main__":
     # Example usage
-    user_type = "MAZOON"  # Replace with the desired user type
-    accounts_list = ["02341583", "18061449"]  # Replace with actual account numbers
-    output_directory = "output"  # Replace with the desired output directory
+    user_type = "MAZOON"
+    accounts_list = ["02341583", "18061449"]
+    output_directory = "output"
 
     # Run the main function
     asyncio.run(main(user_type, accounts_list, output_directory))
