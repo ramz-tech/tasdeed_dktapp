@@ -4,7 +4,7 @@ import fitz
 import os
 import io
 import csv
-from pdf_typs import pdf_types
+from .pdf_typs import pdf_types
 from typing import Dict, Optional, List
 
 def save_text_to_csv(output_directory, extracted_text):
