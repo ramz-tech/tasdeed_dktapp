@@ -42,10 +42,10 @@ class PortalClient:
     async def __aenter__(self):
         self.playwright = await async_playwright().start()
         try:
-            self.browser  = self.playwright.chromium.launch(headless=True)
+            self.browser  = await self.playwright.chromium.launch(headless=True)
         except Exception:
             subprocess.run(["playwright", "install", "chromium"])
-            self.browser  = self.playwright.chromium.launch(headless=True)
+            self.browser  = await self.playwright.chromium.launch(headless=True)
 
         self.context = await self.browser.new_context(ignore_https_errors=True,
                                                       accept_downloads=True,
