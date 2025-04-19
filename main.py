@@ -139,7 +139,7 @@ class Dashboard(QWidget):
 
         df = pd.read_excel(file_path) if file_path.endswith(".xlsx") else pd.read_csv(file_path)
         filtered_df = df[df["SUBTYPE"].str.upper() == user_type.upper()]
-        accounts_list = filtered_df["account_number"].astype(str).tolist()
+        accounts_list = filtered_df.get("ACCOUNTNO", []).astype(str).tolist()
 
         output_directory = "output"
         os.makedirs(output_directory, exist_ok=True)
