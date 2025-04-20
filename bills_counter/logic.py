@@ -15,7 +15,6 @@ def load_accounts(path):
     if "Account_No" in df.columns:
         df.rename(columns={"Account_No": "account_number"}, inplace=True)
 
-<<<<<<< HEAD
     # ✅ Automatically detect user types from SUBTYPE column
     if "SUBTYPE" in df.columns:
         user_types = df["SUBTYPE"].dropna().unique().tolist()
@@ -23,8 +22,6 @@ def load_accounts(path):
     else:
         print("Warning: 'SUBTYPE' column not found in input file.")
 
-=======
->>>>>>> b87f290660f96805e456457f5a9703f002c8c722
     return df.to_dict(orient="records")
 
 def generate_bill(account):

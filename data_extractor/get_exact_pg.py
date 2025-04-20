@@ -71,11 +71,7 @@ class PortalClient:
             await self.page.fill("input#Password", self.password)
             await self.page.wait_for_selector("button.btn.btn-primary.btn-block", state="visible", timeout=10000)
             await self.page.click("button.btn.btn-primary.btn-block")
-<<<<<<< HEAD
-            await self.page.wait_for_load_state("networkidle", timeout=10000000000)
-=======
             await self.page.wait_for_load_state("networkidle", timeout=10000)
->>>>>>> b87f290660f96805e456457f5a9703f002c8c722
             logger.info("Login successful.")
         except TimeoutError as e:
             logger.error("Timeout during login process.")
