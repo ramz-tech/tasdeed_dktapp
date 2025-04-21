@@ -48,8 +48,8 @@ class ExtractionThread(QThread):
             total = len(self.accounts_list)
             for i, account_no in enumerate(self.accounts_list, 1):
                 try:
-                    customer_id = await client.search_by_text(account_no)
-                    params = await client.search_by_id(customer_id)
+                    customer_id, customer_type = await client.search_by_text(account_no)
+                    params = await client.search_by_id(customer_id,customer_type)
                     r_value = await client.create_navigation_url(params)
                     await client.navigate_to_documents_page(r_value)
                     document_data = await client.fetch_document_data()

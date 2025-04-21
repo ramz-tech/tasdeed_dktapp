@@ -80,7 +80,7 @@ class PortalClient:
             logger.error(f"Error during login: {e}")
             raise PortalError("Login failed.") from e
 
-    async def search_by_text(self, account_no) -> str:
+    async def search_by_text(self, account_no) -> (str, str):
         """
         Searches by account number text and returns the customer ID.
 
@@ -89,28 +89,32 @@ class PortalClient:
         """
         search_url = f"{self.base_url}/api/SearchApi/SearchByText?text={account_no}"
         try:
+            a, b = 1,2
             response = await self.context.request.get(search_url)
             search_json = await response.json()
-            customers = search_json.get("Data", {}).get("Customers", [])
-            if not customers:
-                raise PortalError("No customers found in search response.")
-            customer_id = customers[0].get("Id")
+            rp_data = search_json.get("Data", {}).get("Customers") or search_json.get("Data", {}).get("Sites")
+            rp_type = "Customer" if search_json.get("Data", {}).get("Customers") else "Site"
+            if not rp_data:
+                raise PortalError("No customers or sites found in search response.")
+
+            customer_id = rp_data[0].get("Id")
             if not customer_id:
                 raise PortalError("Customer ID not found in search response.")
-            logger.info(f"Customer ID from SearchByText: {customer_id}")
-            return customer_id
+
+            logger.info(f"Customer ID from SearchByText: {customer_id}, Account No: {account_no}")
+            return customer_id, rp_type
         except Exception as e:
             logger.error(f"Error in search_by_text: {e}")
             raise PortalError("Search by text failed.") from e
 
-    async def search_by_id(self, customer_id: str) -> dict:
+    async def search_by_id(self, customer_id: str, customer_type: str) -> dict:
         """
         Searches by customer ID and extracts parameters required for navigation.
 
         Returns:
             dict: A dictionary of parameters extracted from the API response.
         """
-        url = f"{self.base_url}/api/SearchApi/SearchById?id={customer_id}&searchType=Customer"
+        url = f"{self.base_url}/api/SearchApi/SearchById?id={customer_id}&searchType={customer_type}"
         try:
             response = await self.context.request.get(url)
             data_json = await response.json()
