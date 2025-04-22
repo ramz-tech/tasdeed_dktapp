@@ -125,7 +125,7 @@ async def main(user_type: str, accounts_list: list[str], output_directory: str):
 if __name__ == "__main__":
     # Example usage
     user_type = "MAZOON"  # Replace with the desired user type
-    accounts_list = ["2341583"]  # Replace with actual account numbers
+    accounts_list = ["02136715", "00118494"]  # Replace with actual account numbers
     output_directory = "output"  # Replace with the desired output directory
 
     # Run the main function
