@@ -44,12 +44,11 @@ class ExtractionThread(QThread):
         async with client:
             self.update_progress.emit(0, len(self.accounts_list), "⏳ processing...")
             await client.login()
-            # self.update_progress.emit(0, len(self.accounts_list), "✅ Login successful. Starting processing...")
             total = len(self.accounts_list)
             for i, account_no in enumerate(self.accounts_list, 1):
                 try:
                     customer_id, customer_type = await client.search_by_text(account_no)
-                    params = await client.search_by_id(customer_id,customer_type)
+                    params = await client.search_by_id(customer_id, customer_type)
                     r_value = await client.create_navigation_url(params)
                     await client.navigate_to_documents_page(r_value)
                     document_data = await client.fetch_document_data()
@@ -69,9 +68,8 @@ class ExtractionThread(QThread):
                     extracted_data = extract_pdf_data(pdf_path)
                     save_text_to_csv(self.output_directory, extracted_data)
                     delete_pdf(pdf_path)
-                    pass
                 except Exception as e:
-                    self.update_progress.emit(i, total, f"Can not get bill for this account {account_no}. please check the account number.")
+                    self.update_progress.emit(i, total, f"Can not get bill for {account_no}. Check account number.")
 
         now = datetime.now()
         month_year = now.strftime("%#m-%Y") if os.name == "nt" else now.strftime("%-m-%Y")
@@ -154,15 +152,22 @@ class Dashboard(QWidget):
         self.log.setReadOnly(True)
         self.log.setStyleSheet("background-color: #f9f9f9; font-family: Consolas;")
 
-        self.back_btn = QPushButton("🔙 Finish")
-        self.back_btn.setStyleSheet("background-color: #2196F3; color: white; font-size: 14px; padding: 8px; border-radius: 6px;")
-        self.back_btn.clicked.connect(lambda: self.layout.setCurrentIndex(0))
+        # Cancel and Finish Buttons
+        self.cancel_btn = QPushButton("❌ Cancel")
+        self.cancel_btn.setStyleSheet("background-color: #f44336; color: white; font-size: 14px; padding: 8px; border-radius: 6px;")
+        self.cancel_btn.clicked.connect(self.cancel_process)
+
+        self.finish_btn = QPushButton("✅ Finish")
+        self.finish_btn.setStyleSheet("background-color: #2196F3; color: white; font-size: 14px; padding: 8px; border-radius: 6px;")
+        self.finish_btn.clicked.connect(lambda: self.layout.setCurrentIndex(0))
 
         layout.addWidget(self.label)
         layout.addWidget(self.progress)
         layout.addWidget(self.status)
         layout.addWidget(self.log)
-        layout.addWidget(self.back_btn)
+        layout.addWidget(self.cancel_btn)
+        layout.addWidget(self.finish_btn)
+
         self.page2.setLayout(layout)
         self.layout.addWidget(self.page2)
 
@@ -184,7 +189,6 @@ class Dashboard(QWidget):
             return
 
         df = pd.read_excel(self.file_path) if self.file_path.endswith(".xlsx") else pd.read_csv(self.file_path)
-
         subtype = df["SUBTYPE"].dropna().unique()
         if len(subtype) != 1:
             QMessageBox.warning(self, "Multiple SUBTYPES", "Only one user SUBTYPE should exist in the file.")
@@ -203,7 +207,11 @@ class Dashboard(QWidget):
         self.worker.update_progress.connect(self.update_ui)
         self.worker.finished.connect(self.done_ui)
         self.worker.start()
+
+        self.cancel_btn.show()
+        self.finish_btn.hide()
         self.layout.setCurrentIndex(1)
+
     def update_ui(self, current, total, message):
         self.progress.setMaximum(total)
         self.progress.setValue(current)
@@ -212,6 +220,15 @@ class Dashboard(QWidget):
 
     def done_ui(self, output_file):
         self.log.append(f"✅ Done! File saved to: {output_file}")
+        self.cancel_btn.hide()
+        self.finish_btn.show()
+
+    def cancel_process(self):
+        if self.worker and self.worker.isRunning():
+            self.worker.terminate()
+            self.worker.wait()
+        self.log.append("❌ Process cancelled.")
+        self.layout.setCurrentIndex(0)
 
 
 if __name__ == "__main__":
