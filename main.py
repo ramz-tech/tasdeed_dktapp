@@ -22,6 +22,12 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
+def resource_path(filename):
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, filename)
+    return os.path.join(os.path.abspath("."), filename)
+
+
 class ExtractionThread(QThread):
     update_progress = pyqtSignal(int, int, str)
     finished = pyqtSignal(str)
@@ -69,7 +75,7 @@ class ExtractionThread(QThread):
                     save_text_to_csv(self.output_directory, extracted_data)
                     delete_pdf(pdf_path)
                     self.update_progress.emit(i, total, f"✅ Success: {account_no}")
-                except Exception as e:
+                except Exception:
                     self.update_progress.emit(i, total, f"Can not get bill for {account_no}. Check account number.")
 
         now = datetime.now()
@@ -98,7 +104,7 @@ class Dashboard(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Tasdeed Extraction Dashboard")
-        self.setWindowIcon(QIcon("logo.png"))
+        self.setWindowIcon(QIcon(resource_path("logo.png")))
         self.resize(800, 700)
         self.layout = QStackedLayout()
         self.setLayout(self.layout)
@@ -116,7 +122,7 @@ class Dashboard(QWidget):
         layout.setSpacing(20)
 
         logo = QLabel()
-        pixmap = QPixmap("logo.png").scaled(250, 250, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        pixmap = QPixmap(resource_path("logo.png")).scaled(250, 250, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         logo.setPixmap(pixmap)
         logo.setAlignment(Qt.AlignCenter)
 
@@ -221,13 +227,12 @@ class Dashboard(QWidget):
     def update_ui(self, current, total, message):
         if "✅ Success" in message:
             self.success_count += 1
-        elif "❌ Failed" in message or "Can not get" in message or "No bill found" in message or "Old ACCONUTNO skipped" in message:
+        elif "❌ Failed" in message or "Can not get" in message or "No bill found" in message or "Old bill skipped" in message:
             self.fail_count += 1
             self.log.append(message)
 
         self.progress.setMaximum(total)
         self.progress.setValue(current)
-        percent = int((current / total) * 100)
         self.status.setText(f"Progress: {current} / {total}")
 
     def done_ui(self, output_file):
