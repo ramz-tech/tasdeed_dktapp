@@ -59,7 +59,7 @@ class ExtractionThread(QThread):
                     document = documents[-1]
                     creation_date = document.get("CreationDate")
                     if not creation_date or not PortalClient.is_in_current_month(creation_date):
-                        self.update_progress.emit(i, total, f"Old doc skipped: {account_no}")
+                        self.update_progress.emit(i, total, f"Old bill skipped: {account_no}")
                         continue
                     doc_id = document.get("Id")
                     pdf_path = os.path.join(self.pdf_folder, f"{doc_id}.pdf")
@@ -68,6 +68,7 @@ class ExtractionThread(QThread):
                     extracted_data = extract_pdf_data(pdf_path)
                     save_text_to_csv(self.output_directory, extracted_data)
                     delete_pdf(pdf_path)
+                    self.update_progress.emit(i, total, f"✅ Success: {account_no}")
                 except Exception as e:
                     self.update_progress.emit(i, total, f"Can not get bill for {account_no}. Check account number.")
 
@@ -101,6 +102,9 @@ class Dashboard(QWidget):
         self.resize(800, 700)
         self.layout = QStackedLayout()
         self.setLayout(self.layout)
+
+        self.success_count = 0
+        self.fail_count = 0
 
         self.init_page1()
         self.init_page2()
@@ -152,7 +156,6 @@ class Dashboard(QWidget):
         self.log.setReadOnly(True)
         self.log.setStyleSheet("background-color: #f9f9f9; font-family: Consolas;")
 
-        # Cancel and Finish Buttons
         self.cancel_btn = QPushButton("❌ Cancel")
         self.cancel_btn.setStyleSheet("background-color: #f44336; color: white; font-size: 14px; padding: 8px; border-radius: 6px;")
         self.cancel_btn.clicked.connect(self.cancel_process)
@@ -203,6 +206,9 @@ class Dashboard(QWidget):
         pdf_folder = ".pdf_temp"
         os.makedirs(pdf_folder, exist_ok=True)
 
+        self.success_count = 0
+        self.fail_count = 0
+
         self.worker = ExtractionThread(user_type, accounts_list, self.output_directory, pdf_folder)
         self.worker.update_progress.connect(self.update_ui)
         self.worker.finished.connect(self.done_ui)
@@ -213,15 +219,32 @@ class Dashboard(QWidget):
         self.layout.setCurrentIndex(1)
 
     def update_ui(self, current, total, message):
+        if "✅ Success" in message:
+            self.success_count += 1
+        elif "❌ Failed" in message or "Can not get" in message or "No bill found" in message or "Old ACCONUTNO skipped" in message:
+            self.fail_count += 1
+            self.log.append(message)
+
         self.progress.setMaximum(total)
         self.progress.setValue(current)
+        percent = int((current / total) * 100)
         self.status.setText(f"Progress: {current} / {total}")
-        self.log.append(message)
 
     def done_ui(self, output_file):
-        self.log.append(f"✅ Done! File saved to: {output_file}")
+        total = self.success_count + self.fail_count
+        self.log.append(f"\n✅ Done! File saved to: {output_file}")
+        self.log.append(f"📊 Summary: Success: {self.success_count}, Failed: {self.fail_count}, Total Tried: {total}")
         self.cancel_btn.hide()
         self.finish_btn.show()
+
+        copy_target_dir = os.path.join(self.output_directory)
+        os.makedirs(copy_target_dir, exist_ok=True)
+        try:
+            shutil.copy(output_file, copy_target_dir)
+            copied_path = os.path.join(copy_target_dir, os.path.basename(output_file))
+            self.log.append(f"📂 Output also copied to: {copied_path}")
+        except Exception as e:
+            self.log.append(f"⚠️ Failed to copy file: {str(e)}")
 
     def cancel_process(self):
         if self.worker and self.worker.isRunning():
