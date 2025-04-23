@@ -98,7 +98,7 @@ class Dashboard(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Tasdeed Extraction Dashboard")
-        self.setWindowIcon(QIcon("bills_counter/tasdeed.png"))
+        self.setWindowIcon(QIcon("logo.png"))
         self.resize(800, 700)
         self.layout = QStackedLayout()
         self.setLayout(self.layout)
@@ -116,7 +116,7 @@ class Dashboard(QWidget):
         layout.setSpacing(20)
 
         logo = QLabel()
-        pixmap = QPixmap("bills_counter/tasdeed.png").scaled(250, 250, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        pixmap = QPixmap("logo.png").scaled(250, 250, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         logo.setPixmap(pixmap)
         logo.setAlignment(Qt.AlignCenter)
 

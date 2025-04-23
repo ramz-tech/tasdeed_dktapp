@@ -29,7 +29,7 @@ class BillCollectorApp(QWidget):
 
         self.logo_label = QLabel(self)
         try:
-            pixmap = QPixmap("tasdeed.png").scaled(80, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            pixmap = QPixmap("logo.png").scaled(80, 80, Qt.KeepAspectRatio, Qt.SmoothTransformation)
             self.logo_label.setPixmap(pixmap)
             self.logo_label.setAlignment(Qt.AlignCenter)
             layout.addWidget(self.logo_label)
