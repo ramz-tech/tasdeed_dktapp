@@ -7,6 +7,14 @@ import glob
 import shutil
 from datetime import datetime
 
+try:
+    if not shutil.which("playwright"):
+        subprocess.run(["pip", "install", "playwright"])
+        subprocess.run(["playwright", "install"])
+except Exception as e:
+    print(f"Failed to install Playwright: {e}")
+    
+
 from PyQt5.QtGui import QIcon, QPixmap, QFont
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QTextEdit,
