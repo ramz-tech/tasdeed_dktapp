@@ -1,6 +1,8 @@
 import asyncio
 import os
 import logging
+import subprocess
+
 import pandas as pd
 import sys
 import glob
