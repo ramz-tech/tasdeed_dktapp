@@ -32,7 +32,7 @@ jobs:
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --onefile --windowed --icon icon.ico main.py
+        pyinstaller --onefile --windowed --icon orion.ico main.py
 
 
     - name: Upload Executable
