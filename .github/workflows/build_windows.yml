@@ -26,15 +26,13 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller
         pip install -r requirements.txt
-        python -m playwright install
+#        python -m playwright install
 
 
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --onefile --windowed \
-          --icon icon.ico \
-          main.py
+        pyinstaller --onefile --windowed --icon icon.ico main.py
 
 
     - name: Upload Executable
