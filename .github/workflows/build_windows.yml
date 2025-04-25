@@ -38,7 +38,6 @@ jobs:
       - name: Build with PyInstaller
         run: |
           pyinstaller --onefile --windowed \
-            --add-data "bills_counter;  bills_counter" \
             --icon icon.ico \
             main.py
 
