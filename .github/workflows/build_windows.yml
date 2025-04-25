@@ -31,7 +31,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.9"  # Specify your desired Python version
+          python-version: "3.12"  # Specify your desired Python version
 
       # 4. Install dependencies
       - name: Install dependencies
@@ -43,7 +43,7 @@ jobs:
       # 5. Build the application with PyInstaller
       - name: Build with PyInstaller
         run: |
-          pyinstaller --onefile --windowed main.py
+          pyinstaller --onefile --windowed --add-data=bills_counter:logo.png --icon=icon.ico main.py
           # If your main script is in a subfolder, adjust the command accordingly.
 
       # 6. Upload build artifacts
