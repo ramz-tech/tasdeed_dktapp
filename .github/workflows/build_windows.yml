@@ -27,38 +27,36 @@ jobs:
         pip install pyinstaller
         pip install -r requirements.txt
 
-    - name: Install Playwright
+    - name: Install Playwright and browsers
       run: |
         python -m playwright install
-        python -m playwright install-deps
         python -m playwright install chromium
+        python -m playwright install-deps
 
-    - name: Cache Playwright browsers
-      uses: actions/cache@v3
-      with:
-        path: |
-          ~/.cache/ms-playwright/
-          %USERPROFILE%/.cache/ms-playwright/
-        key: ${{ runner.os }}-playwright-${{ hashFiles('**/requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-playwright-
-
-    - name: Verify Playwright Installation
+    - name: List Browser Path
       run: |
-        python -c "from playwright.sync_api import sync_playwright; playwright = sync_playwright().start(); browser = playwright.chromium.launch(); browser.close(); playwright.stop()"
+        $browserPath = "$env:USERPROFILE\.cache\ms-playwright"
+        Write-Host "Browser path: $browserPath"
+        if (Test-Path $browserPath) {
+            Get-ChildItem $browserPath -Recurse | Where-Object { $_.PSIsContainer } | ForEach-Object { Write-Host $_.FullName }
+        }
 
-    - name: Verify Playwright Installation
+    - name: Prepare Browser Files
       run: |
-        python -c "from playwright.sync_api import sync_playwright; playwright = sync_playwright().start(); browser = playwright.chromium.launch(); browser.close(); playwright.stop()"
-
-    - name: Create Playwright directory structure
-      run: |
-        mkdir -p playwright/.cache/ms-playwright
-        xcopy /E /I /Y "%USERPROFILE%\.cache\ms-playwright" "playwright\.cache\ms-playwright\"
+        New-Item -Path ".\browser_data" -ItemType Directory -Force
+        Copy-Item -Path "$env:USERPROFILE\.cache\ms-playwright\*" -Destination ".\browser_data" -Recurse -Force
+        Get-ChildItem ".\browser_data" -Recurse | Where-Object { $_.PSIsContainer } | ForEach-Object { Write-Host $_.FullName }
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --onefile --windowed --add-data "bills_counter;bills_counter" --add-data "playwright;playwright" --hidden-import playwright --hidden-import playwright.async_api --collect-all playwright --icon icon.ico main.py
+        pyinstaller --onefile --windowed `
+          --add-data "bills_counter;bills_counter" `
+          --add-data "browser_data;playwright/.cache/ms-playwright" `
+          --hidden-import playwright `
+          --hidden-import playwright.async_api `
+          --collect-all playwright `
+          --icon icon.ico `
+          main.py
 
     - name: Upload Executable
       uses: actions/upload-artifact@v4
