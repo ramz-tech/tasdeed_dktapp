@@ -2,6 +2,9 @@ import asyncio
 import base64
 import datetime
 import logging
+import os
+import sys
+import glob
 from urllib.parse import urlparse, parse_qs
 import subprocess
 from playwright.async_api import async_playwright, TimeoutError
@@ -15,6 +18,50 @@ class PortalError(Exception):
     """Custom exception for portal-related errors."""
     pass
 
+def resource_path(relative_path):
+    """ Get absolute path to resource inside EXE """
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.abspath("."), relative_path)
+
+def find_chromium_executable():
+    """Finds the Chromium executable dynamically inside bundled resources."""
+    try:
+        # First try the system-wide installation
+        result = subprocess.run(['playwright', 'install', 'chromium'], capture_output=True, text=True)
+        if result.returncode != 0:
+            logger.warning("Could not install Chromium via playwright CLI")
+
+        if sys.platform == 'win32':
+            # Windows path
+            chrome_relative_path = os.path.join('chromium-*', 'chrome-win', 'chrome.exe')
+        elif sys.platform == 'darwin':
+            # MacOS path
+            chrome_relative_path = os.path.join('chromium-*', 'chrome-mac', 'Chromium.app', 'Contents', 'MacOS', 'Chromium')
+        else:
+            # Linux path
+            chrome_relative_path = os.path.join('chromium-*', 'chrome-linux', 'chrome')
+
+        # Try multiple possible base paths
+        possible_paths = [
+            resource_path('playwright/.cache/ms-playwright/'),
+            os.path.expanduser('~/.cache/ms-playwright/'),
+            os.path.join(os.path.dirname(sys.executable), 'playwright', '.cache', 'ms-playwright')
+        ]
+
+        for base_path in possible_paths:
+            pattern = os.path.join(base_path, chrome_relative_path)
+            matches = glob.glob(pattern)
+            if matches:
+                executable_path = matches[0]
+                if os.path.exists(executable_path):
+                    logger.info(f"Found Chromium at: {executable_path}")
+                    return executable_path
+
+        raise FileNotFoundError("Chromium executable not found in any expected location")
+    except Exception as e:
+        logger.error(f"Error finding Chromium executable: {e}")
+        raise
 
 class PortalClient:
     """
@@ -39,21 +86,52 @@ class PortalClient:
         self.context = None
         self.page = None
 
-    async def __aenter__(self):
-        self.playwright = await async_playwright().start()
-        try:
-            self.browser  = await self.playwright.chromium.launch(headless=True)
-        except Exception:
-            subprocess.run(["playwright", "install", "chromium"])
-            self.browser  = await self.playwright.chromium.launch(headless=True)
 
-        self.context = await self.browser.new_context(ignore_https_errors=True,
-                                                      accept_downloads=True,
-                                                      viewport={"width": 1280, "height": 720})
-        self.page = await self.context.new_page()
-        if self.cookies:
-            await self.context.add_cookies(self.cookies)
-        return self
+    async def __aenter__(self):
+        try:
+            self.playwright = await async_playwright().start()
+
+            # Try to launch browser with default configuration first
+            try:
+                self.browser = await self.playwright.chromium.launch(
+                    headless=True,
+                    args=['--no-sandbox']
+                )
+            except Exception as e:
+                logger.warning(f"Failed to launch browser with default config: {e}")
+
+                # Try to find specific Chromium executable
+                try:
+                    chromium_executable = find_chromium_executable()
+                    self.browser = await self.playwright.chromium.launch(
+                        executable_path=chromium_executable,
+                        headless=True,
+                        args=['--no-sandbox']
+                    )
+                except Exception as inner_e:
+                    logger.error(f"Failed to launch browser with specific executable: {inner_e}")
+                    # Try installing Playwright browsers as a last resort
+                    subprocess.run(["playwright", "install"], check=True)
+                    subprocess.run(["playwright", "install-deps"], check=True)
+                    self.browser = await self.playwright.chromium.launch(
+                        headless=True,
+                        args=['--no-sandbox']
+                    )
+
+            self.context = await self.browser.new_context(
+                ignore_https_errors=True,
+                accept_downloads=True,
+                viewport={"width": 1280, "height": 720}
+            )
+            self.page = await self.context.new_page()
+            if self.cookies:
+                await self.context.add_cookies(self.cookies)
+            return self
+        except Exception as e:
+            logger.error(f"Failed to initialize browser context: {e}")
+            if self.playwright:
+                await self.playwright.stop()
+            raise
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         if self.browser:
