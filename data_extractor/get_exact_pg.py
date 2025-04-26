@@ -89,7 +89,6 @@ class PortalClient:
         """
         search_url = f"{self.base_url}/api/SearchApi/SearchByText?text={account_no}"
         try:
-            a, b = 1,2
             response = await self.context.request.get(search_url)
             search_json = await response.json()
             rp_data = search_json.get("Data", {}).get("Customers") or search_json.get("Data", {}).get("Sites")

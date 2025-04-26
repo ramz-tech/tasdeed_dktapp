@@ -64,10 +64,10 @@ async def main(user_type: str, accounts_list: list[str], output_directory: str):
         for account_no in accounts_list:
             try:
                 # Step 2: Search by text to get customer ID
-                customer_id = await client.search_by_text(account_no)
+                customer_id, c_type = await client.search_by_text(account_no)
 
                 # Step 3: Search by ID to extract necessary parameters
-                params = await client.search_by_id(customer_id)
+                params = await client.search_by_id(customer_id, c_type)
 
                 # Step 4: Create Navigation URL and extract r value
                 r_value = await client.create_navigation_url(params)
@@ -100,17 +100,17 @@ async def main(user_type: str, accounts_list: list[str], output_directory: str):
                 # Step 8: Fetch PDF data for the document and save it
                 doc_id = document.get("Id")
                 pdf_data = await client.fetch_pdf_data(document_id=doc_id)
-                await client.save_pdf(pdf_data, filepath=f'./data_extractor/{doc_id}.pdf')
+                await client.save_pdf(pdf_data, filepath=f'./{doc_id}.pdf')
                 logger.info(f"PDF saved successfully for document ID {doc_id}.")
 
 
                 # Step 9: Extract text from the PDF
-                extracted_data =  extract_pdf_data(f'./data_extractor/{doc_id}.pdf')
+                extracted_data =  extract_pdf_data(f'./{doc_id}.pdf')
 
                 # Step 10: Save extracted text to CSV TODO: here we need to insert the data to the file if it is already exist
                 save_text_to_csv(output_directory, extracted_data)
                 logger.info(f"Data saved successfully for account number {account_no}.")
-                delete_pdf(f'./data_extractor/{doc_id}.pdf')
+                delete_pdf(f'./{doc_id}.pdf')
                 logger.info(f"PDF deleted successfully for document ID {doc_id}.")
 
 
@@ -125,7 +125,7 @@ async def main(user_type: str, accounts_list: list[str], output_directory: str):
 if __name__ == "__main__":
     # Example usage
     user_type = "MAZOON"  # Replace with the desired user type
-    accounts_list = ["2341583"]  # Replace with actual account numbers
+    accounts_list = ["02136715", "00118494"]  # Replace with actual account numbers
     output_directory = "output"  # Replace with the desired output directory
 
     # Run the main function
