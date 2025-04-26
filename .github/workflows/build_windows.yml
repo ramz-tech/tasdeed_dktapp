@@ -47,9 +47,18 @@ jobs:
       run: |
         python -c "from playwright.sync_api import sync_playwright; playwright = sync_playwright().start(); browser = playwright.chromium.launch(); browser.close(); playwright.stop()"
 
+    - name: Verify Playwright Installation
+      run: |
+        python -c "from playwright.sync_api import sync_playwright; playwright = sync_playwright().start(); browser = playwright.chromium.launch(); browser.close(); playwright.stop()"
+
+    - name: Create Playwright directory structure
+      run: |
+        mkdir -p playwright/.cache/ms-playwright
+        xcopy /E /I /Y "%USERPROFILE%\.cache\ms-playwright" "playwright\.cache\ms-playwright\"
+
     - name: Build with PyInstaller
       run: |
-        pyinstaller --onefile --windowed --add-data "bills_counter;bills_counter" --add-data "%USERPROFILE%/.cache/ms-playwright;playwright/.cache/ms-playwright" --hidden-import playwright --hidden-import playwright.async_api --collect-all playwright --icon icon.ico main.py
+        pyinstaller --onefile --windowed --add-data "bills_counter;bills_counter" --add-data "playwright;playwright" --hidden-import playwright --hidden-import playwright.async_api --collect-all playwright --icon icon.ico main.py
 
     - name: Upload Executable
       uses: actions/upload-artifact@v4
