@@ -26,13 +26,12 @@ jobs:
         python -m pip install --upgrade pip
         pip install pyinstaller
         pip install -r requirements.txt
-        python -m playwright install
-
+        python -m playwright install --with-deps
 
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --onefile --windowed --icon orion.ico main.py
+        pyinstaller --onefile --windowed --add-data "bills_counter;bills_counter" --add-data "%USERPROFILE%/.cache/ms-playwright/ms-playwright;playwright/.cache/ms-playwright" --icon icon.ico main.py
 
 
     - name: Upload Executable
