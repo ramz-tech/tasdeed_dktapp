@@ -26,6 +26,7 @@ try:
         logger.info("Installing Playwright...")
         subprocess.run(["pip", "install", "playwright"], check=True)
         subprocess.run(["playwright", "install"], check=True)
+        subprocess.run(["python", "-m", "playwright", "install"], check=True)
 except subprocess.CalledProcessError as e:
     logger.error(f"Failed to install Playwright. Exit code: {e.returncode}")
     sys.exit(1)
