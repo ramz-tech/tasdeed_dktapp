@@ -13,40 +13,92 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 logger = logging.getLogger(__name__)
 
 def save_text_to_csv(output_directory, extracted_text):
-    # Ensure the output directory exists, create it if not
-    if not os.path.exists(output_directory):
-        os.makedirs(output_directory)
-        logger.info(f"Created directory: {output_directory}")
+    """
+    Save extracted text data to a CSV file.
 
-    csv_filename = 'output.csv'
-    csv_path = os.path.join(output_directory, csv_filename)
+    Args:
+        output_directory (str): Directory to save the CSV file
+        extracted_text (dict): Dictionary containing extracted data
 
-    # Extract the data from extracted_text[0]
-    extracted_data = extracted_text[0]
+    Raises:
+        ValueError: If extracted_text is empty or invalid
+        OSError: If there's an issue with file operations
+        Exception: For any other unexpected errors
+    """
+    try:
+        # Validate input data
+        if not extracted_text or not isinstance(extracted_text, dict) or 0 not in extracted_text:
+            raise ValueError("Invalid or empty extracted text data")
 
-    # Check if CSV exists; if not, create it with headers
-    file_exists = os.path.exists(csv_path)
+        # Ensure the output directory exists, create it if not
+        if not os.path.exists(output_directory):
+            os.makedirs(output_directory)
+            logger.info(f"Created directory: {output_directory}")
 
-    with open(csv_path, mode='a', newline='', encoding='utf-8') as csv_file:
-        writer = csv.DictWriter(csv_file, fieldnames=extracted_data.keys())
+        csv_filename = 'output.csv'
+        csv_path = os.path.join(output_directory, csv_filename)
 
-        # If file doesn't exist, write the headers
-        if not file_exists:
-            writer.writeheader()
+        # Extract the data from extracted_text[0]
+        extracted_data = extracted_text[0]
 
-        # Write the extracted data (as a row in the CSV)
-        writer.writerow(extracted_data)
+        if not extracted_data or not isinstance(extracted_data, dict):
+            raise ValueError("Invalid data format in extracted text")
 
-    logger.info(f"Appended extracted data to {csv_path}")
+        # Check if CSV exists; if not, create it with headers
+        file_exists = os.path.exists(csv_path)
+
+        with open(csv_path, mode='a', newline='', encoding='utf-8') as csv_file:
+            writer = csv.DictWriter(csv_file, fieldnames=extracted_data.keys())
+
+            # If file doesn't exist, write the headers
+            if not file_exists:
+                writer.writeheader()
+
+            # Write the extracted data (as a row in the CSV)
+            writer.writerow(extracted_data)
+
+        logger.info(f"Appended extracted data to {csv_path}")
+
+    except ValueError as e:
+        logger.error(f"Data validation error in save_text_to_csv: {e}")
+        raise
+    except OSError as e:
+        logger.error(f"File operation error in save_text_to_csv: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in save_text_to_csv: {e}")
+        raise
 
 def delete_pdf(pdf_path):
+    """
+    Delete a PDF file at the specified path.
+
+    Args:
+        pdf_path (str): Path to the PDF file to delete
+
+    Raises:
+        FileNotFoundError: If the file does not exist
+        PermissionError: If there's a permission issue
+        OSError: If there's another OS-related error
+    """
+    if not pdf_path or not isinstance(pdf_path, str):
+        logger.warning("Invalid PDF path provided for deletion")
+        return
+
     try:
         os.remove(pdf_path)
         logger.info(f"Deleted PDF file at {pdf_path}")
     except FileNotFoundError:
         logger.warning(f"File {pdf_path} not found, cannot delete.")
+    except PermissionError as e:
+        logger.error(f"Permission denied when trying to delete {pdf_path}: {e}")
+        raise
+    except OSError as e:
+        logger.error(f"OS error occurred while trying to delete {pdf_path}: {e}")
+        raise
     except Exception as e:
-        logger.error(f"An error occurred while trying to delete {pdf_path}: {str(e)}")
+        logger.error(f"Unexpected error occurred while trying to delete {pdf_path}: {e}")
+        raise
 
 def split_string(string):
     pattern = r"-"
@@ -135,28 +187,83 @@ def determine_pdf_type(page):
         return 'dofar'
 
 def extract_pdf_data(pdf_file):
-    doc = fitz.open(pdf_file)
-    data = {}
-    num = 0
-    for page_number in range(len(doc)):
-        page = doc[page_number]
-        pdf_type = determine_pdf_type(page)
-        fields = pdf_types[pdf_type]['fields']
-        page_data = {}
-        for field_name, field_info in fields.items():
-            coordinates = field_info['coordinates']
-            handler = field_info.get('handler', lambda x: x)
+    """
+    Extract data from a PDF file based on predefined coordinates and field types.
+
+    Args:
+        pdf_file (str): Path to the PDF file
+
+    Returns:
+        dict: Dictionary containing extracted data from each page
+
+    Raises:
+        FileNotFoundError: If the PDF file does not exist
+        ValueError: If the PDF file is invalid or corrupted
+        KeyError: If required field definitions are missing
+        Exception: For any other unexpected errors
+    """
+    if not pdf_file or not isinstance(pdf_file, str):
+        logger.error("Invalid PDF file path provided")
+        raise ValueError("Invalid PDF file path provided")
+
+    if not os.path.exists(pdf_file):
+        logger.error(f"PDF file not found: {pdf_file}")
+        raise FileNotFoundError(f"PDF file not found: {pdf_file}")
+
+    try:
+        doc = fitz.open(pdf_file)
+    except Exception as e:
+        logger.error(f"Error opening PDF file {pdf_file}: {e}")
+        raise ValueError(f"Could not open PDF file: {str(e)}")
+
+    try:
+        data = {}
+        num = 0
+        for page_number in range(len(doc)):
             try:
-                extracted_text = extract_text_by_coordinates_new(page, coordinates)
-                value = handler(extracted_text)
-                page_data[field_name] = value
+                page = doc[page_number]
+                pdf_type = determine_pdf_type(page)
+
+                try:
+                    fields = pdf_types[pdf_type]['fields']
+                except KeyError as e:
+                    logger.error(f"PDF type '{pdf_type}' not defined in pdf_types or missing 'fields': {e}")
+                    raise KeyError(f"PDF type configuration error: {str(e)}")
+
+                page_data = {}
+                for field_name, field_info in fields.items():
+                    try:
+                        coordinates = field_info['coordinates']
+                        handler = field_info.get('handler', lambda x: x)
+
+                        try:
+                            extracted_text = extract_text_by_coordinates_new(page, coordinates)
+                            value = handler(extracted_text)
+                            page_data[field_name] = value
+                        except Exception as e:
+                            logger.error(f"Error processing field '{field_name}': {e}")
+                            page_data[field_name] = None
+                    except KeyError as e:
+                        logger.error(f"Missing required field info for '{field_name}': {e}")
+                        page_data[field_name] = None
+
+                data[num] = page_data
+                num += 1
             except Exception as e:
-                logger.error(f"Error processing field '{field_name}': {e}")
-                page_data[field_name] = None
-        data[num] = page_data
-        num += 1
-    doc.close()
-    return data
+                logger.error(f"Error processing page {page_number} in {pdf_file}: {e}")
+                # Continue with next page instead of failing the whole process
+
+        return data
+    except Exception as e:
+        logger.error(f"Unexpected error extracting data from PDF {pdf_file}: {e}")
+        raise
+    finally:
+        try:
+            if 'doc' in locals():
+                doc.close()
+        except Exception as e:
+            logger.warning(f"Error closing PDF document: {e}")
+            # Don't raise here as the main operation might have succeeded
 
 def _dummy_data(acc):
     return {0: {

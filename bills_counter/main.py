@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtCore import Qt, QTimer
-from logic import load_accounts, generate_bill, save_to_excel
+from logic import load_accounts, generate_bill, save_to_file
 
 class BillCollectorApp(QWidget):
     def __init__(self):
@@ -134,7 +134,7 @@ class BillCollectorApp(QWidget):
     def download_bills(self):
         path, _ = QFileDialog.getSaveFileName(self, "Save File", "success_bills.xlsx", "Excel Files (*.xlsx)")
         if path:
-            save_to_excel(self.success_bills_df, path)
+            save_to_file(self.success_bills_df, path)
             QMessageBox.information(self, "Saved", "Bills saved successfully!")
 
     def download_error_report(self):
@@ -144,7 +144,7 @@ class BillCollectorApp(QWidget):
 
         path, _ = QFileDialog.getSaveFileName(self, "Save File", "error_report.xlsx", "Excel Files (*.xlsx)")
         if path:
-            save_to_excel(self.failed_accounts, path)
+            save_to_file(self.failed_accounts, path)
             QMessageBox.information(self, "Saved", "Error report saved successfully!")
 
 if __name__ == '__main__':
