@@ -1,4 +1,3 @@
-
 name: Build Windows Application
 
 on:
@@ -27,32 +26,30 @@ jobs:
         pip install pyinstaller
         pip install -r requirements.txt
 
-    - name: Install Playwright and browsers
+    - name: Install Playwright
       run: |
-        python -m playwright install
+        python -m pip install playwright
         python -m playwright install chromium
         python -m playwright install-deps
 
-    - name: List Browser Path
+    - name: Check Browser Installation
       run: |
-        $browserPath = "$env:USERPROFILE\.cache\ms-playwright"
-        Write-Host "Browser path: $browserPath"
-        if (Test-Path $browserPath) {
-            Get-ChildItem $browserPath -Recurse | Where-Object { $_.PSIsContainer } | ForEach-Object { Write-Host $_.FullName }
-        }
+        python -c "from playwright.sync_api import sync_playwright; print('Playwright initialized successfully')"
 
-    - name: Prepare Browser Files
+    - name: Modify Application for Bundling
       run: |
-        New-Item -Path ".\browser_data" -ItemType Directory -Force
-        Copy-Item -Path "$env:USERPROFILE\.cache\ms-playwright\*" -Destination ".\browser_data" -Recurse -Force
-        Get-ChildItem ".\browser_data" -Recurse | Where-Object { $_.PSIsContainer } | ForEach-Object { Write-Host $_.FullName }
+        # Modify get_exact_pg.py to use bundled browser
+        echo "Adding code to handle bundled browser"
+        $content = Get-Content -Path "data_extractor\get_exact_pg.py" -Raw
+        $newContent = $content -replace "def find_chromium_executable\(\):.+?raise FileNotFoundError.+?raise", "def find_chromium_executable():`n    try:`n        if hasattr(sys, '_MEIPASS'):`n            return os.path.join(sys._MEIPASS, 'playwright', 'chromium-*', 'chrome.exe')`n        # Rest of the function remains the same`n    except Exception as e:`n        logger.error(f'Error finding Chromium executable: {e}')`n        raise"
+        $newContent | Set-Content -Path "data_extractor\get_exact_pg.py"
 
     - name: Build with PyInstaller
       run: |
         pyinstaller --onefile --windowed `
           --add-data "bills_counter;bills_counter" `
-          --add-data "browser_data;playwright/.cache/ms-playwright" `
           --hidden-import playwright `
+          --hidden-import playwright.sync_api `
           --hidden-import playwright.async_api `
           --collect-all playwright `
           --icon icon.ico `
