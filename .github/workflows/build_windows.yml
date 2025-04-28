@@ -114,5 +114,4 @@ jobs:
           rm -rf __pycache__/
           rm -rf dist/
           rm -f *.spec
-Add GitHub Actions workflow to build Windows application · mjid13/tasdeed-desktop@ec84f5e
 
