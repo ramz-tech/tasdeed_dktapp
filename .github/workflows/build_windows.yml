@@ -23,46 +23,38 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
+        pip install pyinstaller
         pip install -r requirements.txt
-        pip install pyinstaller playwright
 
-    - name: Install Playwright Browsers
+    - name: Install Playwright
       run: |
+        python -m pip install playwright
         python -m playwright install chromium
         python -m playwright install-deps
 
-    - name: Check Playwright Setup
-      run: python -c "from playwright.sync_api import sync_playwright; print('Playwright initialized')"
-
-    - name: Patch Chromium Executable Function
-      shell: pwsh
+    - name: Check Browser Installation
       run: |
-        Remove-Item -Path "data_extractor\get_exact_pg.py" -ErrorAction Ignore
-        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "import os"
-        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "import sys"
-        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "import logging"
-        Add-Content -Path "data_extractor\get_exact_pg.py" -Value \"`nlogger = logging.getLogger(__name__)\"
-        Add-Content -Path "data_extractor\get_exact_pg.py" -Value \"`ndef find_chromium_executable():\"
-        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "    try:"
-        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "        if hasattr(sys, '_MEIPASS'):"
-        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "            return os.path.join(sys._MEIPASS, 'playwright', 'chromium-*', 'chrome.exe')"
-        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "        # fallback code here if needed"
-        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "    except Exception as e:"
-        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "        logger.error(f'Error finding Chromium executable: {e}')"
-        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "        raise"
+        python -c "from playwright.sync_api import sync_playwright; print('Playwright initialized successfully')"
 
-    - name: Build Executable with PyInstaller
-      shell: pwsh
+    - name: Modify Application for Bundling
       run: |
-        pyinstaller --onefile --windowed `
-          --hidden-import playwright `
-          --hidden-import playwright.sync_api `
-          --hidden-import playwright.async_api `
-          --collect-all playwright `
-          --icon icon.ico `
+         Modify get_exact_pg.py to use bundled browser
+         echo "Adding code to handle bundled browser"
+         $content = Get-Content -Path "data_extractor\get_exact_pg.py" -Raw
+         $newContent = $content -replace "def find_chromium_executable\(\):.+?raise FileNotFoundError.+?raise", "def find_chromium_executable():n    try:n        if hasattr(sys, '_MEIPASS'):n            return os.path.join(sys._MEIPASS, 'playwright', 'chromium-*', 'chrome.exe')n         Rest of the function remains the samen    except Exception as e:n        logger.error(f'Error finding Chromium executable: {e}')n        raise"
+         $newContent | Set-Content -Path "data_extractor\get_exact_pg.py"
+
+    - name: Build with PyInstaller
+      run: |
+        pyinstaller --onefile --windowed 
+          --hidden-import playwright 
+          --hidden-import playwright.sync_api 
+          --hidden-import playwright.async_api 
+          --collect-all playwright 
+          --icon icon.ico 
           main.py
 
-    - name: Upload Executable Artifact
+    - name: Upload Executable
       uses: actions/upload-artifact@v4
       with:
         name: windows-executable
