@@ -37,22 +37,19 @@ jobs:
     - name: Patch Chromium Executable Function
       shell: pwsh
       run: |
-        Set-Content -Path "data_extractor\get_exact_pg.py" -Value @'
-import os
-import sys
-import logging
-
-logger = logging.getLogger(__name__)
-
-def find_chromium_executable():
-    try:
-        if hasattr(sys, "_MEIPASS"):
-            return os.path.join(sys._MEIPASS, "playwright", "chromium-*", "chrome.exe")
-        # fallback code here if needed
-    except Exception as e:
-        logger.error(f"Error finding Chromium executable: {e}")
-        raise
-'@
+        Remove-Item -Path "data_extractor\get_exact_pg.py" -ErrorAction Ignore
+        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "import os"
+        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "import sys"
+        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "import logging"
+        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "`nlogger = logging.getLogger(__name__)"
+        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "`ndef find_chromium_executable():"
+        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "    try:"
+        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "        if hasattr(sys, '_MEIPASS'):"
+        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "            return os.path.join(sys._MEIPASS, 'playwright', 'chromium-*', 'chrome.exe')"
+        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "        # fallback code here if needed"
+        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "    except Exception as e:"
+        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "        logger.error(f'Error finding Chromium executable: {e}')"
+        Add-Content -Path "data_extractor\get_exact_pg.py" -Value "        raise"
 
     - name: Build Executable with PyInstaller
       run: |
