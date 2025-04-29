@@ -43,7 +43,6 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal
 
 from data_extractor.get_exact_pg import PortalClient
 from data_transform.core_utils import extract_pdf_data, save_text_to_csv, delete_pdf
-from bills_counter.logic import load_accounts, generate_bill, save_to_file
 
 
 def resource_path(filename: str) -> str:
