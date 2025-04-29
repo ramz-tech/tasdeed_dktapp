@@ -34,22 +34,25 @@ jobs:
     - name: Check Playwright Setup
       run: python -c "from playwright.sync_api import sync_playwright; print('Playwright initialized')"
 
-    - name: Patch get_exact_pg.py for Chromium in Bundle
+    - name: Patch Chromium Executable Function
       shell: pwsh
       run: |
-        $file = "data_extractor\get_exact_pg.py"
-        $content = Get-Content -Path $file -Raw
-        $patched = $content -replace "def find_chromium_executable\(\):.+?raise FileNotFoundError.+?raise", @"
+        Set-Content -Path "data_extractor\get_exact_pg.py" -Value @'
+import os
+import sys
+import logging
+
+logger = logging.getLogger(__name__)
+
 def find_chromium_executable():
     try:
-        if hasattr(sys, '_MEIPASS'):
-            return os.path.join(sys._MEIPASS, 'playwright', 'chromium-*', 'chrome.exe')
-        # Your original fallback logic here
+        if hasattr(sys, "_MEIPASS"):
+            return os.path.join(sys._MEIPASS, "playwright", "chromium-*", "chrome.exe")
+        # fallback code here if needed
     except Exception as e:
-        logger.error(f'Error finding Chromium executable: {e}')
+        logger.error(f"Error finding Chromium executable: {e}")
         raise
-"@
-        Set-Content -Path $file -Value $patched
+'@
 
     - name: Build Executable with PyInstaller
       run: |
