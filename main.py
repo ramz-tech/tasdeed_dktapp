@@ -9,18 +9,33 @@ import shutil
 from datetime import datetime
 from typing import Tuple, Dict, List, Optional
 
+import os
+import logging
+
+# Safe log directory in AppData
+log_dir = os.path.join(os.environ.get("LOCALAPPDATA", os.getcwd()), "ORION")
+os.makedirs(log_dir, exist_ok=True)
+log_file_path = os.path.join(log_dir, "app.log")
+
 # Configure logging
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler('app.log'),
+        logging.FileHandler(log_file_path),
         logging.StreamHandler()
     ]
 )
 logger = logging.getLogger(__name__)
 
-# Install Playwright with proper error handling
+if hasattr(sys, "_MEIPASS"):
+    # Construct the path to the bundled ms-playwright folder. Adjust the folder name if needed.
+    bundled_browser_path = os.path.join(sys._MEIPASS, "ms-playwright")
+    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = bundled_browser_path
+else:
+    # Use the default location (0 means use the default location for the browsers)
+    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "0"
+
 try:
     if not shutil.which("playwright"):
         logger.info("Installing Playwright...")
@@ -43,6 +58,7 @@ from PyQt5.QtCore import Qt, QThread, pyqtSignal
 
 from data_extractor.get_exact_pg import PortalClient
 from data_transform.core_utils import extract_pdf_data, save_text_to_csv, delete_pdf
+
 
 
 def resource_path(filename: str) -> str:
@@ -217,7 +233,7 @@ class Dashboard(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Tasdeed Extraction Dashboard")
-        self.setWindowIcon(QIcon(resource_path("logo.png")))
+        self.setWindowIcon(QIcon(resource_path("images/logo.png")))
         self.resize(500, 400)
         self.layout = QStackedLayout()
         self.setLayout(self.layout)
@@ -235,7 +251,7 @@ class Dashboard(QWidget):
         layout.setSpacing(20)
 
         logo = QLabel()
-        pixmap = QPixmap(resource_path("logo.png")).scaled(250, 250, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        pixmap = QPixmap(resource_path("images/logo.png")).scaled(250, 250, Qt.KeepAspectRatio, Qt.SmoothTransformation)
         logo.setPixmap(pixmap)
         logo.setAlignment(Qt.AlignCenter)
 
@@ -373,13 +389,38 @@ class Dashboard(QWidget):
         self.log.append(f"❌ Error: {error_message}")
         self.cancel_btn.hide()
         self.finish_btn.show()
-
+    
+    
+    # Cancel the extraction process
+    # and clean up temporary files
+    
     def cancel_process(self):
         if self.worker and self.worker.isRunning():
             self.worker.terminate()
             self.worker.wait()
-        self.log.append("❌ Process cancelled.")
+
+        # Clear log
+        self.log.clear()
+
+        # Remove temporary PDFs
+        if hasattr(self, 'worker') and os.path.exists(self.worker.pdf_folder):
+            try:
+                for file in os.listdir(self.worker.pdf_folder):
+                    if file.endswith(".pdf"):
+                        os.remove(os.path.join(self.worker.pdf_folder, file))
+            except Exception as e:
+                self.log.append(f"⚠️ Error cleaning temp files: {str(e)}")
+
+        # Delete partial CSV output if exists
+        try:
+            temp_csv = os.path.join(self.output_directory, "output.csv")
+            if os.path.exists(temp_csv):
+                os.remove(temp_csv)
+        except Exception as e:
+            self.log.append(f"⚠️ Error deleting temp output: {str(e)}")
+
         self.layout.setCurrentIndex(0)
+
 
 
 if __name__ == "__main__":
