@@ -1,0 +1,1 @@
+pyinstaller --onefile --windowed --name ORION --hidden-import=playwright --hidden-import=playwright.sync_api --hidden-import=playwright.async_api --collect-all=playwright --icon=icon.ico --add-data "C:\Users\Dell\AppData\Local\ms-playwright;playwright\driver\package" main.py
