@@ -1,0 +1,31 @@
+[Setup]
+AppName=ORION
+AppVersion=1.0
+AppPublisher=orion
+AppPublisherURL=http://www.orion.com
+AppSupportURL=http://www.orion.com/support
+AppUpdatesURL=http://www.orion.com/updates
+DefaultDirName={pf}\ORION
+DefaultGroupName=ORION
+OutputBaseFilename=ORION_Setup
+Compression=lzma
+SolidCompression=yes
+LicenseFile=licenses.txt
+
+[Languages]
+Name: "english"; MessagesFile: "compiler:Default.isl"
+
+[Files]
+; Replace the Source path to the location of your main.exe and licenses.txt file.
+Source: "dist\main.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "licenses.txt"; DestDir: "{app}"; Flags: ignoreversion
+
+[Icons]
+Name: "{group}\ORION"; Filename: "{app}\main.exe"
+Name: "{commondesktop}\ORION"; Filename: "{app}\main.exe"; Tasks: desktopicon
+
+[Tasks]
+Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional icons:"; Flags: unchecked
+
+[Run]
+Filename: "{app}\main.exe"; Description: "Launch ORION"; Flags: nowait postinstall skipifsilent
