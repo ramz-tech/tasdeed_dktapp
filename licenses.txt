@@ -1,31 +1,12 @@
-[Setup]
-AppName=ORION
-AppVersion=1.0
-AppPublisher=orion
-AppPublisherURL=http://www.orion.com
-AppSupportURL=http://www.orion.com/support
-AppUpdatesURL=http://www.orion.com/updates
-DefaultDirName={pf}\ORION
-DefaultGroupName=ORION
-OutputBaseFilename=ORION_Setup
-Compression=lzma
-SolidCompression=yes
-LicenseFile=licenses.txt
+ORION Application License Agreement
 
-[Languages]
-Name: "english"; MessagesFile: "compiler:Default.isl"
+Copyright (c) 2025 ORION Team
 
-[Files]
-; Replace the Source path to the location of your main.exe and licenses.txt file.
-Source: "dist\main.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "licenses.txt"; DestDir: "{app}"; Flags: ignoreversion
+This software is licensed, not sold. By installing or using this software, you agree to the following:
 
-[Icons]
-Name: "{group}\ORION"; Filename: "{app}\main.exe"
-Name: "{commondesktop}\ORION"; Filename: "{app}\main.exe"; Tasks: desktopicon
+1. You may use this application for personal or commercial use.
+2. Redistribution is not allowed without prior written consent.
+3. This software is provided "as-is" without any warranties.
+4. The creators are not liable for any damage caused by the use of this software.
 
-[Tasks]
-Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional icons:"; Flags: unchecked
-
-[Run]
-Filename: "{app}\main.exe"; Description: "Launch ORION"; Flags: nowait postinstall skipifsilent
+Thank you for using ORION.
