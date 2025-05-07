@@ -36,18 +36,18 @@ else:
     # Use the default location (0 means use the default location for the browsers)
     os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "0"
 
-try:
-    if not shutil.which("playwright"):
-        logger.info("Installing Playwright...")
-        subprocess.run(["pip", "install", "playwright"], check=True)
-        subprocess.run(["playwright", "install"], check=True)
-        subprocess.run(["python", "-m", "playwright", "install"], check=True)
-except subprocess.CalledProcessError as e:
-    logger.error(f"Failed to install Playwright. Exit code: {e.returncode}")
-    sys.exit(1)
-except Exception as e:
-    logger.error(f"Unexpected error installing Playwright: {e}")
-    sys.exit(1)
+# try:
+#     if not shutil.which("playwright"):
+#         logger.info("Installing Playwright...")
+#         subprocess.run(["pip", "install", "playwright"], check=True)
+#         subprocess.run(["playwright", "install"], check=True)
+#         subprocess.run(["python", "-m", "playwright", "install"], check=True)
+# except subprocess.CalledProcessError as e:
+#     logger.error(f"Failed to install Playwright. Exit code: {e.returncode}")
+#     sys.exit(1)
+# except Exception as e:
+#     logger.error(f"Unexpected error installing Playwright: {e}")
+#     sys.exit(1)
 
 from PyQt5.QtGui import QIcon, QPixmap, QFont
 from PyQt5.QtWidgets import (
@@ -326,7 +326,7 @@ class Dashboard(QWidget):
             QMessageBox.warning(self, "Missing Info", "Please select both file and output folder.")
             return
 
-        df = pd.read_excel(self.file_path) if self.file_path.endswith(".xlsx") else pd.read_csv(self.file_path)
+        df = pd.read_excel( self.file_path, dtype={"ACCOUNTNO": str} ) if self.file_path.endswith(".xlsx") else pd.read_csv( self.file_path, dtype={"ACCOUNTNO": str} )
         subtype = df["SUBTYPE"].dropna().unique()
         if len(subtype) != 1:
             QMessageBox.warning(self, "Multiple SUBTYPES", "Only one user SUBTYPE should exist in the file.")
@@ -389,11 +389,7 @@ class Dashboard(QWidget):
         self.log.append(f"❌ Error: {error_message}")
         self.cancel_btn.hide()
         self.finish_btn.show()
-    
-    
-    # Cancel the extraction process
-    # and clean up temporary files
-    
+
     def cancel_process(self):
         if self.worker and self.worker.isRunning():
             self.worker.terminate()
@@ -419,7 +415,15 @@ class Dashboard(QWidget):
         except Exception as e:
             self.log.append(f"⚠️ Error deleting temp output: {str(e)}")
 
+        # ❌ Delete log file
+        try:
+            if os.path.exists(log_file_path):
+                os.remove(log_file_path)
+        except Exception as e:
+            self.log.append(f"⚠️ Error deleting log file: {str(e)}")
+
         self.layout.setCurrentIndex(0)
+
 
 
 
