@@ -57,7 +57,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 
 from data_extractor.get_exact_pg import PortalClient
-from data_transform.core_utils import extract_pdf_data, save_text_to_csv, delete_pdf
+from data_transform.core_utils import extract_pdf_data, save_text_to_csv, delete_pdf, _dummy_data
 
 
 
@@ -118,6 +118,7 @@ class ExtractionThread(QThread):
                     except Exception as e:
                         logger.error(f"Error processing account {account_no}: {e}", exc_info=True)
                         self.update_progress.emit(i, total, f"❌ Failed to access this account : {account_no}")
+                        save_text_to_csv(self.output_directory, _dummy_data(account_no))
 
                 await self._finalize_output(output_file)
 
@@ -132,6 +133,7 @@ class ExtractionThread(QThread):
         except Exception as e:
             logger.error(f"Error searching for account {account_no}: {e}")
             self.update_progress.emit(i, total, f"❌ Failed to access this account: {account_no}") # Search failed
+            save_text_to_csv(self.output_directory, _dummy_data(account_no))
             raise ValueError(f"Could not find account {account_no}: {str(e)}")
 
         try:
@@ -139,6 +141,7 @@ class ExtractionThread(QThread):
         except Exception as e:
             logger.error(f"Error getting details for account {account_no}: {e}")
             self.update_progress.emit(i, total, f"❌ Failed to access this account: {account_no}") # Details lookup failed
+            save_text_to_csv(self.output_directory, _dummy_data(account_no))
             raise ValueError(f"Could not get details for account {account_no}: {str(e)}")
 
         try:
@@ -147,6 +150,7 @@ class ExtractionThread(QThread):
         except Exception as e:
             logger.error(f"Error navigating to documents for account {account_no}: {e}")
             self.update_progress.emit(i, total, f"❌ Failed to access this account: {account_no}") # Navigation failed
+            save_text_to_csv(self.output_directory, _dummy_data(account_no))
             raise ValueError(f"Could not navigate to documents for account {account_no}: {str(e)}")
 
         try:
@@ -155,16 +159,19 @@ class ExtractionThread(QThread):
         except Exception as e:
             logger.error(f"Error fetching documents for account {account_no}: {e}")
             self.update_progress.emit(i, total, f"❌ Failed to fetch data form bill: {account_no} ")
+            save_text_to_csv(self.output_directory, _dummy_data(account_no))
             raise ValueError(f"Could not fetch documents for account {account_no}: {str(e)}")
 
         if not documents:
             self.update_progress.emit(i, total, f"⚠️ No bill found for {account_no}")
+            save_text_to_csv(self.output_directory, _dummy_data(account_no))
             return
 
         document = documents[-1]
         creation_date = document.get("CreationDate")
         if not creation_date or not PortalClient.is_in_current_month(creation_date):
             self.update_progress.emit(i, total, f"ℹ️ Old bill skipped: {account_no}")
+            save_text_to_csv(self.output_directory, _dummy_data(account_no))
             return
 
         doc_id = document.get("Id")
