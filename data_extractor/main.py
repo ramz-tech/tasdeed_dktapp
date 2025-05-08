@@ -62,6 +62,7 @@ async def main(user_type: str, accounts_list: list[str], output_directory: str):
         await client.login()
 
         for account_no in accounts_list:
+            logger.info(f"Processing account number: {account_no}")
             try:
                 # Step 2: Search by text to get customer ID
                 customer_id, c_type = await client.search_by_text(account_no)
@@ -80,22 +81,22 @@ async def main(user_type: str, accounts_list: list[str], output_directory: str):
                 documents = document_data.get("Data", {}).get("Documents", [])
                 if not documents:
                     logger.error("No documents found in document data.")
-                    return
+                    # return
 
                 # step 7: Handel the right document
                 document = documents[-1]
                 creation_date = document.get('CreationDate')
                 if not creation_date:
                     logger.error("Creation date missing from document data.")
-                    return
+                    # return
 
                 try:
                     if not PortalClient.is_in_current_month(creation_date):
                         logger.info("Document is not from the current month. Aborting further PDF fetch.")
-                        return
+                        # return
                 except ValueError as e:
                     logger.error(f"Date format error: {e}")
-                    return
+                    # return
 
                 # Step 8: Fetch PDF data for the document and save it
                 doc_id = document.get("Id")
@@ -124,9 +125,28 @@ async def main(user_type: str, accounts_list: list[str], output_directory: str):
 
 if __name__ == "__main__":
     # Example usage
+    import pandas as pd
+    import time
+
+    # Start the timer
+    start_time = time.time()
+    # Read the Excel file to get the list of account numbers
+    df = pd.read_excel("/home/x/Desktop/tasdeed-projects_all/tasdeed_dktapp/NOORA-MAJAN 10-2024(1).xlsx", dtype={"ACCOUNTNO":str})  # Replace with the actual file path
+    accounts_list = df["ACCOUNTNO"].astype(str).tolist()
+    print(accounts_list)
+    # Replace with the actual column name
+    # For demonstration, using a hardcoded list of account numbers
+
     user_type = "MAZOON"  # Replace with the desired user type
-    accounts_list = ["02136715", "00118494"]  # Replace with actual account numbers
-    output_directory = "output"  # Replace with the desired output directory
+    # accounts_list = ["02136715", "00118494"]  # Replace with actual account numbers
+    output_directory = "test_output"  # Replace with the desired output directory
 
     # Run the main function
     asyncio.run(main(user_type, accounts_list, output_directory))
+    end_time = time.time()
+
+    # Calculate and print the elapsed time
+    elapsed_time = end_time - start_time
+    print("start time:", start_time)
+    print("end time:", end_time)
+    print(f"Execution time: {elapsed_time:.2f} seconds")
