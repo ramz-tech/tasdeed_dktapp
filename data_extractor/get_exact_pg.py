@@ -46,7 +46,7 @@ def find_chromium_executable():
         possible_paths = [
             resource_path('playwright/.cache/ms-playwright/'),
             os.path.expanduser('~/.cache/ms-playwright/'),
-            os.path.join(os.path.dirname(sys.executable), 'playwright', '.cache', 'ms-playwright')
+            os.path.join(os.path.dirname(sys.executable), 'playwright', '.cache', 'ms-playwright'),
         ]
 
         for base_path in possible_paths:
@@ -144,12 +144,12 @@ class PortalClient:
         login_url = f"{self.base_url}/Account/Login"
         try:
             await self.page.goto(login_url)
-            await self.page.wait_for_selector("input#Username", state="visible", timeout=10000)
+            await self.page.wait_for_selector("input#Username", state="visible", timeout=100000)
             await self.page.fill("input#Username", self.username)
             await self.page.fill("input#Password", self.password)
-            await self.page.wait_for_selector("button.btn.btn-primary.btn-block", state="visible", timeout=10000)
+            await self.page.wait_for_selector("button.btn.btn-primary.btn-block", state="visible", timeout=100000)
             await self.page.click("button.btn.btn-primary.btn-block")
-            await self.page.wait_for_load_state("networkidle", timeout=10000)
+            await self.page.wait_for_load_state("networkidle", timeout=100000)
             logger.info("Login successful.")
         except TimeoutError as e:
             logger.error("Timeout during login process.")
@@ -265,7 +265,7 @@ class PortalClient:
         documents_url = f"{self.base_url}//DOCUMENTS?r={r_value}"
         try:
             await self.page.goto(documents_url)
-            await self.page.wait_for_load_state("networkidle", timeout=10000)
+            await self.page.wait_for_load_state("networkidle", timeout=100000)
             logger.info(f"Navigated to documents page: {documents_url}")
         except Exception as e:
             logger.error(f"Error navigating to documents page: {e}")
