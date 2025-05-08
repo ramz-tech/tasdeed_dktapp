@@ -117,8 +117,8 @@ class ExtractionThread(QThread):
                         await self._process_account(client, account_no, i, total)
                     except Exception as e:
                         logger.error(f"Error processing account {account_no}: {e}", exc_info=True)
-                        self.update_progress.emit(i, total, f"❌ Failed to access this account : {account_no}")
-                        save_text_to_csv(self.output_directory, _dummy_data(account_no))
+                        # self.update_progress.emit(i, total, f"❌ Failed to access this account : {account_no}")
+                        # save_text_to_csv(self.output_directory, _dummy_data(account_no))
 
                 await self._finalize_output(output_file)
 
@@ -188,6 +188,8 @@ class ExtractionThread(QThread):
             logger.error(f"Error processing PDF for account {account_no}: {e}")
             if os.path.exists(pdf_path):
                 os.remove(pdf_path)
+            self.update_progress.emit(i, total, f"❌ Failed to processing PDF this account: {account_no}")
+            save_text_to_csv(self.output_directory, _dummy_data(account_no))
             raise ValueError(f"Error processing bill for account {account_no}: {str(e)}")
 
     async def _finalize_output(self, output_file: str):
