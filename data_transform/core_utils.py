@@ -12,13 +12,14 @@ from typing import Dict, Optional, List
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-def save_text_to_csv(output_directory, extracted_text):
+def save_text_to_csv(output_directory, extracted_text, filename='output.csv'):
     """
     Save extracted text data to a CSV file.
 
     Args:
         output_directory (str): Directory to save the CSV file
         extracted_text (dict): Dictionary containing extracted data
+        filename (str, optional): Name of the CSV file. Defaults to 'output.csv'.
 
     Raises:
         ValueError: If extracted_text is empty or invalid
@@ -35,8 +36,7 @@ def save_text_to_csv(output_directory, extracted_text):
             os.makedirs(output_directory)
             logger.info(f"Created directory: {output_directory}")
 
-        csv_filename = 'output.csv'
-        csv_path = os.path.join(output_directory, csv_filename)
+        csv_path = os.path.join(output_directory, filename)
 
         # Extract the data from extracted_text[0]
         extracted_data = extracted_text[0]
@@ -244,7 +244,7 @@ def extract_pdf_data(pdf_file):
                         except Exception as e:
                             logger.error(f"Error processing field '{field_name}': {e}")
                             page_data[field_name] = None
-                            data[num] = _dummy_data(num)
+                            # Don't replace the entire page data with dummy data for a single field error
 
                     except KeyError as e:
                         logger.error(f"Missing required field info for '{field_name}': {e}")
