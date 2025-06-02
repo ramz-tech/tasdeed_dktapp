@@ -13,7 +13,10 @@ import os
 import logging
 
 # Safe log directory in AppData
-log_dir = os.path.join(os.environ.get("LOCALAPPDATA", os.getcwd()), "ORION")
+if os.name == 'nt':  # Windows
+    log_dir = os.path.join(os.environ.get("LOCALAPPDATA", os.getcwd()), "ORION")
+else:  # Linux/Mac
+    log_dir = os.path.join(os.path.expanduser("~"), ".local", "share", "ORION")
 os.makedirs(log_dir, exist_ok=True)
 log_file_path = os.path.join(log_dir, "app.log")
 
@@ -28,26 +31,27 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Set up Playwright browsers path for bundled executable
 if hasattr(sys, "_MEIPASS"):
-    # Construct the path to the bundled ms-playwright folder. Adjust the folder name if needed.
-    bundled_browser_path = os.path.join(sys._MEIPASS, "ms-playwright")
-    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = bundled_browser_path
-else:
-    # Use the default location (0 means use the default location for the browsers)
-    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "0"
+    # For bundled executable, use a persistent location
+    browser_path = os.path.join(os.environ.get("LOCALAPPDATA", os.getcwd()), "ORION", "browsers")
+    os.makedirs(browser_path, exist_ok=True)
+    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = browser_path
 
-# try:
-#     if not shutil.which("playwright"):
-#         logger.info("Installing Playwright...")
-#         subprocess.run(["pip", "install", "playwright"], check=True)
-#         subprocess.run(["playwright", "install"], check=True)
-#         subprocess.run(["python", "-m", "playwright", "install"], check=True)
-# except subprocess.CalledProcessError as e:
-#     logger.error(f"Failed to install Playwright. Exit code: {e.returncode}")
-#     sys.exit(1)
-# except Exception as e:
-#     logger.error(f"Unexpected error installing Playwright: {e}")
-#     sys.exit(1)
+    # Install browsers if they don't exist
+    chromium_path = os.path.join(browser_path, "chromium-1140")
+    if not os.path.exists(chromium_path):
+        try:
+            logger.info("Installing Playwright browsers for the first time...")
+            subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
+            logger.info("Playwright browsers installed successfully")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to install Playwright browsers: {e}")
+        except Exception as e:
+            logger.error(f"Unexpected error installing browsers: {e}")
+else:
+    # For development, use default location
+    os.environ["PLAYWRIGHT_BROWSERS_PATH"] = "0"
 
 from PyQt5.QtGui import QIcon, QPixmap, QFont
 from PyQt5.QtWidgets import (
@@ -60,13 +64,19 @@ from data_extractor.get_exact_pg import PortalClient
 from data_transform.core_utils import extract_pdf_data, save_text_to_csv, delete_pdf, _dummy_data
 
 
-
 def resource_path(filename: str) -> str:
     """Get absolute path to resource."""
     try:
         if hasattr(sys, '_MEIPASS'):
-            return os.path.join(sys._MEIPASS, filename)
-        return os.path.join(os.path.abspath("."), filename)
+            path = os.path.join(sys._MEIPASS, filename)
+        else:
+            path = os.path.join(os.path.abspath("."), filename)
+
+        # Check if file exists, return default if not
+        if not os.path.exists(path):
+            logger.warning(f"Resource not found: {path}")
+            return filename  # Return original filename as fallback
+        return path
     except Exception as e:
         logger.error(f"Failed to get resource path for {filename}: {e}")
         return filename
@@ -132,7 +142,7 @@ class ExtractionThread(QThread):
             customer_id, customer_type = await client.search_by_text(account_no)
         except Exception as e:
             logger.error(f"Error searching for account {account_no}: {e}")
-            self.update_progress.emit(i, total, f"❌ Failed to access this account: {account_no}") # Search failed
+            self.update_progress.emit(i, total, f"❌ Failed to access this account: {account_no}")  # Search failed
             save_text_to_csv(self.output_directory, _dummy_data(account_no))
             raise ValueError(f"Could not find account {account_no}: {str(e)}")
 
@@ -140,7 +150,8 @@ class ExtractionThread(QThread):
             params = await client.search_by_id(customer_id, customer_type)
         except Exception as e:
             logger.error(f"Error getting details for account {account_no}: {e}")
-            self.update_progress.emit(i, total, f"❌ Failed to access this account: {account_no}") # Details lookup failed
+            self.update_progress.emit(i, total,
+                                      f"❌ Failed to access this account: {account_no}")  # Details lookup failed
             save_text_to_csv(self.output_directory, _dummy_data(account_no))
             raise ValueError(f"Could not get details for account {account_no}: {str(e)}")
 
@@ -149,7 +160,7 @@ class ExtractionThread(QThread):
             await client.navigate_to_documents_page(r_value)
         except Exception as e:
             logger.error(f"Error navigating to documents for account {account_no}: {e}")
-            self.update_progress.emit(i, total, f"❌ Failed to access this account: {account_no}") # Navigation failed
+            self.update_progress.emit(i, total, f"❌ Failed to access this account: {account_no}")  # Navigation failed
             save_text_to_csv(self.output_directory, _dummy_data(account_no))
             raise ValueError(f"Could not navigate to documents for account {account_no}: {str(e)}")
 
@@ -269,7 +280,8 @@ class Dashboard(QWidget):
         self.start_btn = QPushButton("🚀 Start Extraction")
 
         for btn in [self.select_file_btn, self.select_output_btn, self.start_btn]:
-            btn.setStyleSheet("background-color: #4CAF50; color: white; font-size: 16px; padding: 10px; border-radius: 8px;")
+            btn.setStyleSheet(
+                "background-color: #4CAF50; color: white; font-size: 16px; padding: 10px; border-radius: 8px;")
             btn.setCursor(Qt.PointingHandCursor)
 
         self.select_file_btn.clicked.connect(self.select_file)
@@ -301,11 +313,13 @@ class Dashboard(QWidget):
         self.log.setStyleSheet("background-color: #f9f9f9; font-family: Consolas;")
 
         self.cancel_btn = QPushButton("❌ Cancel")
-        self.cancel_btn.setStyleSheet("background-color: #f44336; color: white; font-size: 14px; padding: 8px; border-radius: 6px;")
+        self.cancel_btn.setStyleSheet(
+            "background-color: #f44336; color: white; font-size: 14px; padding: 8px; border-radius: 6px;")
         self.cancel_btn.clicked.connect(self.cancel_process)
 
         self.finish_btn = QPushButton("✅ Finish")
-        self.finish_btn.setStyleSheet("background-color: #2196F3; color: white; font-size: 14px; padding: 8px; border-radius: 6px;")
+        self.finish_btn.setStyleSheet(
+            "background-color: #2196F3; color: white; font-size: 14px; padding: 8px; border-radius: 6px;")
         self.finish_btn.clicked.connect(lambda: self.layout.setCurrentIndex(0))
 
         layout.addWidget(self.label)
@@ -335,7 +349,8 @@ class Dashboard(QWidget):
             QMessageBox.warning(self, "Missing Info", "Please select both file and output folder.")
             return
 
-        df = pd.read_excel( self.file_path, dtype={"ACCOUNTNO": str} ) if self.file_path.endswith(".xlsx") else pd.read_csv( self.file_path, dtype={"ACCOUNTNO": str} )
+        df = pd.read_excel(self.file_path, dtype={"ACCOUNTNO": str}) if self.file_path.endswith(
+            ".xlsx") else pd.read_csv(self.file_path, dtype={"ACCOUNTNO": str})
         subtype = df["SUBTYPE"].dropna().unique()
         if len(subtype) != 1:
             QMessageBox.warning(self, "Multiple SUBTYPES", "Only one user SUBTYPE should exist in the file.")
@@ -434,10 +449,21 @@ class Dashboard(QWidget):
         self.layout.setCurrentIndex(0)
 
 
-
-
 if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    dashboard = Dashboard()
-    dashboard.show()
-    sys.exit(app.exec_())
+    try:
+        # Check if display is available (for Linux)
+        if sys.platform.startswith('linux') and not os.environ.get('DISPLAY'):
+            logger.error("Error: No display available. Please run in a GUI environment.")
+            sys.exit(1)
+
+        app = QApplication(sys.argv)
+        dashboard = Dashboard()
+        dashboard.show()
+        sys.exit(app.exec_())
+    except ImportError as e:
+        logger.error(f"Missing dependency: {e}")
+        logger.info("Please install required packages: pip install -r requirements.txt")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Error starting application: {e}")
+        sys.exit(1)
