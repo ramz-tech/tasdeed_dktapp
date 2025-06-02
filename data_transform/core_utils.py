@@ -227,6 +227,7 @@ def extract_pdf_data(pdf_file):
                 try:
                     fields = pdf_types[pdf_type]['fields']
                 except KeyError as e:
+                    data[num] = _dummy_data(num)
                     logger.error(f"PDF type '{pdf_type}' not defined in pdf_types or missing 'fields': {e}")
                     raise KeyError(f"PDF type configuration error: {str(e)}")
 
@@ -243,13 +244,17 @@ def extract_pdf_data(pdf_file):
                         except Exception as e:
                             logger.error(f"Error processing field '{field_name}': {e}")
                             page_data[field_name] = None
+                            data[num] = _dummy_data(num)
+
                     except KeyError as e:
                         logger.error(f"Missing required field info for '{field_name}': {e}")
                         page_data[field_name] = None
+                        data[num] = _dummy_data(num)
 
                 data[num] = page_data
                 num += 1
             except Exception as e:
+                data[num] = _dummy_data(num)
                 logger.error(f"Error processing page {page_number} in {pdf_file}: {e}")
                 # Continue with next page instead of failing the whole process
 
