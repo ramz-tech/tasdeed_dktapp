@@ -123,30 +123,30 @@ async def main(user_type: str, accounts_list: list[str], output_directory: str):
                 continue
 
 
-if __name__ == "__main__":
-    # Example usage
-    import pandas as pd
-    import time
-
-    # Start the timer
-    start_time = time.time()
-    # Read the Excel file to get the list of account numbers
-    df = pd.read_excel("/home/x/Desktop/tasdeed-projects_all/tasdeed_dktapp/NOORA-MAJAN 10-2024(1).xlsx", dtype={"ACCOUNTNO":str})  # Replace with the actual file path
-    accounts_list = df["ACCOUNTNO"].astype(str).tolist()
-    print(accounts_list)
-    # Replace with the actual column name
-    # For demonstration, using a hardcoded list of account numbers
-
-    user_type = "MAZOON"  # Replace with the desired user type
-    # accounts_list = ["02136715", "00118494"]  # Replace with actual account numbers
-    output_directory = "test_output"  # Replace with the desired output directory
-
-    # Run the main function
-    asyncio.run(main(user_type, accounts_list, output_directory))
-    end_time = time.time()
-
-    # Calculate and print the elapsed time
-    elapsed_time = end_time - start_time
-    print("start time:", start_time)
-    print("end time:", end_time)
-    print(f"Execution time: {elapsed_time:.2f} seconds")
+# if __name__ == "__main__":
+#     # Example usage
+#     import pandas as pd
+#     import time
+#
+#     # Start the timer
+#     start_time = time.time()
+#     # Read the Excel file to get the list of account numbers
+#     df = pd.read_excel("/home/x/Desktop/tasdeed-projects_all/tasdeed_dktapp/MAZOON M EXCEL SHEET-2.xlsx", dtype={"ACCOUNTNO":str})  # Replace with the actual file path
+#     accounts_list = df["ACCOUNTNO"].astype(str).tolist()
+#     print(accounts_list)
+#     # Replace with the actual column name
+#     # For demonstration, using a hardcoded list of account numbers
+#
+#     user_type = "MAZOON"  # Replace with the desired user type
+#     # accounts_list = ["02136715", "00118494"]  # Replace with actual account numbers
+#     output_directory = "test_output"  # Replace with the desired output directory
+#
+#     # Run the main function
+#     asyncio.run(main(user_type, accounts_list, output_directory))
+#     end_time = time.time()
+#
+#     # Calculate and print the elapsed time
+#     elapsed_time = end_time - start_time
+#     print("start time:", start_time)
+#     print("end time:", end_time)
+#     print(f"Execution time: {elapsed_time:.2f} seconds")
