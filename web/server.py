@@ -16,7 +16,7 @@ from aiohttp.web import WebSocketResponse
 
 # Import the extraction functionality
 from data_extractor.get_exact_pg import PortalClient
-from data_transform.core_utils import extract_pdf_data, save_text_to_csv, delete_pdf, _dummy_data
+from data_transform.core_utils import extract_pdf_data, save_text_to_xlsx, delete_pdf, _dummy_data
 
 # Configure logging
 logging.basicConfig(
@@ -160,7 +160,7 @@ class ExtractionTask:
                 })
                 # Use the task-specific output filename
                 output_filename = f"output_{self.task_id}.csv"
-                save_text_to_csv(self.output_directory, _dummy_data(account_no), output_filename)
+                save_text_to_xlsx(self.output_directory, _dummy_data(account_no), output_filename)
                 self.fail_count += 1
                 return
 
@@ -176,7 +176,7 @@ class ExtractionTask:
                 })
                 # Use the task-specific output filename
                 output_filename = f"output_{self.task_id}.csv"
-                save_text_to_csv(self.output_directory, _dummy_data(account_no), output_filename)
+                save_text_to_xlsx(self.output_directory, _dummy_data(account_no), output_filename)
                 self.fail_count += 1
                 return
 
@@ -193,7 +193,7 @@ class ExtractionTask:
                 })
                 # Use the task-specific output filename
                 output_filename = f"output_{self.task_id}.csv"
-                save_text_to_csv(self.output_directory, _dummy_data(account_no), output_filename)
+                save_text_to_xlsx(self.output_directory, _dummy_data(account_no), output_filename)
                 self.fail_count += 1
                 return
 
@@ -210,7 +210,7 @@ class ExtractionTask:
                 })
                 # Use the task-specific output filename
                 output_filename = f"output_{self.task_id}.csv"
-                save_text_to_csv(self.output_directory, _dummy_data(account_no), output_filename)
+                save_text_to_xlsx(self.output_directory, _dummy_data(account_no), output_filename)
                 self.fail_count += 1
                 return
 
@@ -223,7 +223,7 @@ class ExtractionTask:
                 })
                 # Use the task-specific output filename
                 output_filename = f"output_{self.task_id}.csv"
-                save_text_to_csv(self.output_directory, _dummy_data(account_no), output_filename)
+                save_text_to_xlsx(self.output_directory, _dummy_data(account_no), output_filename)
                 self.fail_count += 1
                 return
 
@@ -240,7 +240,7 @@ class ExtractionTask:
                 })
                 # Use the task-specific output filename
                 output_filename = f"output_{self.task_id}.csv"
-                save_text_to_csv(self.output_directory, _dummy_data(account_no), output_filename)
+                save_text_to_xlsx(self.output_directory, _dummy_data(account_no), output_filename)
                 self.fail_count += 1
                 return
 
@@ -257,7 +257,7 @@ class ExtractionTask:
                 extracted_data = extract_pdf_data(pdf_path)
                 # Use the task-specific output filename
                 output_filename = f"output_{self.task_id}.csv"
-                save_text_to_csv(self.output_directory, extracted_data, output_filename)
+                save_text_to_xlsx(self.output_directory, extracted_data, output_filename)
 
                 # Delete PDF to save space
                 delete_pdf(pdf_path)
@@ -291,7 +291,7 @@ class ExtractionTask:
 
                 # Use the task-specific output filename
                 output_filename = f"output_{self.task_id}.csv"
-                save_text_to_csv(self.output_directory, _dummy_data(account_no), output_filename)
+                save_text_to_xlsx(self.output_directory, _dummy_data(account_no), output_filename)
                 self.fail_count += 1
 
         except Exception as e:

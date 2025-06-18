@@ -1,6 +1,6 @@
 from data_extractor.get_exact_pg import PortalClient
 import asyncio
-from data_transform.core_utils import extract_pdf_data, save_text_to_csv, generate_csv_from_docs, delete_pdf
+from data_transform.core_utils import extract_pdf_data, save_text_to_xlsx, generate_csv_from_docs, delete_pdf
 import logging
 
 
@@ -109,7 +109,7 @@ async def main(user_type: str, accounts_list: list[str], output_directory: str):
                 extracted_data =  extract_pdf_data(f'./{doc_id}.pdf')
 
                 # Step 10: Save extracted text to CSV TODO: here we need to insert the data to the file if it is already exist
-                save_text_to_csv(output_directory, extracted_data)
+                save_text_to_xlsx(output_directory, extracted_data)
                 logger.info(f"Data saved successfully for account number {account_no}.")
                 delete_pdf(f'./{doc_id}.pdf')
                 logger.info(f"PDF deleted successfully for document ID {doc_id}.")

@@ -5,6 +5,9 @@ import os
 import io
 import csv
 import logging
+
+import pandas as pd
+
 from .pdf_typs import pdf_types
 from typing import Dict, Optional, List
 
@@ -67,6 +70,73 @@ def save_text_to_csv(output_directory, extracted_text, filename='output.csv'):
         raise
     except Exception as e:
         logger.error(f"Unexpected error in save_text_to_csv: {e}")
+        raise
+
+def save_text_to_xlsx(output_directory, extracted_text, filename='output.xlsx'):
+    """
+    Save extracted text data to an Excel file.
+
+    Args:
+        output_directory (str): Directory to save the Excel file
+        extracted_text (dict): Dictionary containing extracted data
+        filename (str, optional): Name of the Excel file. Defaults to 'output.xlsx'.
+
+    Raises:
+        ValueError: If extracted_text is empty or invalid
+        OSError: If there's an issue with file operations
+        Exception: For any other unexpected errors
+    """
+    try:
+        # Validate input data
+        if not extracted_text or not isinstance(extracted_text, dict) or 0 not in extracted_text:
+            raise ValueError("Invalid or empty extracted text data")
+
+        # Ensure the output directory exists, create it if not
+        if not os.path.exists(output_directory):
+            os.makedirs(output_directory)
+            logger.info(f"Created directory: {output_directory}")
+
+        excel_path = os.path.join(output_directory, filename)
+
+        # Extract the data from extracted_text[0]
+        extracted_data = extracted_text[0]
+
+        if not extracted_data or not isinstance(extracted_data, dict):
+            raise ValueError("Invalid data format in extracted text")
+
+        # Check if Excel file exists; if it does, read existing data
+        if os.path.exists(excel_path):
+            try:
+                # Read existing Excel file
+                existing_df = pd.read_excel(excel_path)
+
+                # Convert the new data to DataFrame
+                new_df = pd.DataFrame([extracted_data])
+
+                # Concatenate the existing data with new data
+                combined_df = pd.concat([existing_df, new_df], ignore_index=True)
+
+            except Exception as e:
+                logger.warning(f"Error reading existing Excel file, creating new one: {e}")
+                # If there's an error reading the existing file, create a new DataFrame
+                combined_df = pd.DataFrame([extracted_data])
+        else:
+            # Create new DataFrame with the extracted data
+            combined_df = pd.DataFrame([extracted_data])
+
+        # Save the DataFrame to Excel file
+        combined_df.to_excel(excel_path, index=False, engine='openpyxl')
+
+        logger.info(f"Appended extracted data to {excel_path}")
+
+    except ValueError as e:
+        logger.error(f"Data validation error in save_text_to_excel: {e}")
+        raise
+    except OSError as e:
+        logger.error(f"File operation error in save_text_to_excel: {e}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error in save_text_to_excel: {e}")
         raise
 
 def delete_pdf(pdf_path):

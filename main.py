@@ -61,7 +61,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 
 from data_extractor.get_exact_pg import PortalClient
-from data_transform.core_utils import extract_pdf_data, save_text_to_csv, delete_pdf, _dummy_data
+from data_transform.core_utils import extract_pdf_data, save_text_to_xlsx, delete_pdf, _dummy_data
 
 
 def resource_path(filename: str) -> str:
@@ -127,8 +127,8 @@ class ExtractionThread(QThread):
                         await self._process_account(client, account_no, i, total)
                     except Exception as e:
                         logger.error(f"Error processing account {account_no}: {e}", exc_info=True)
-                        # self.update_progress.emit(i, total, f"❌ Failed to access this account : {account_no}")
-                        # save_text_to_csv(self.output_directory, _dummy_data(account_no))
+                        # Note: This catch is for any unexpected errors not handled in _process_account
+                        # The _process_account method now handles all expected errors internally
 
                 await self._finalize_output(output_file)
 
@@ -142,47 +142,46 @@ class ExtractionThread(QThread):
             customer_id, customer_type = await client.search_by_text(account_no)
         except Exception as e:
             logger.error(f"Error searching for account {account_no}: {e}")
-            self.update_progress.emit(i, total, f"❌ Failed to access this account: {account_no}")  # Search failed
-            save_text_to_csv(self.output_directory, _dummy_data(account_no))
-            raise ValueError(f"Could not find account {account_no}: {str(e)}")
+            self.update_progress.emit(i, total, f"❌ Failed to access this account: {account_no}")
+            save_text_to_xlsx(self.output_directory, _dummy_data(account_no))
+            return  # Exit immediately instead of raising
 
         try:
             params = await client.search_by_id(customer_id, customer_type)
         except Exception as e:
             logger.error(f"Error getting details for account {account_no}: {e}")
-            self.update_progress.emit(i, total,
-                                      f"❌ Failed to access this account: {account_no}")  # Details lookup failed
-            save_text_to_csv(self.output_directory, _dummy_data(account_no))
-            raise ValueError(f"Could not get details for account {account_no}: {str(e)}")
+            self.update_progress.emit(i, total, f"❌ Failed to get details for account: {account_no}")
+            save_text_to_xlsx(self.output_directory, _dummy_data(account_no))
+            return  # Exit immediately instead of raising
 
         try:
             r_value = await client.create_navigation_url(params)
             await client.navigate_to_documents_page(r_value)
         except Exception as e:
             logger.error(f"Error navigating to documents for account {account_no}: {e}")
-            self.update_progress.emit(i, total, f"❌ Failed to access this account: {account_no}")  # Navigation failed
-            save_text_to_csv(self.output_directory, _dummy_data(account_no))
-            raise ValueError(f"Could not navigate to documents for account {account_no}: {str(e)}")
+            self.update_progress.emit(i, total, f"❌ Failed to access this account: {account_no}")
+            save_text_to_xlsx(self.output_directory, _dummy_data(account_no))
+            return  # Exit immediately instead of raising
 
         try:
             document_data = await client.fetch_document_data()
             documents = document_data.get("Data", {}).get("Documents", [])
         except Exception as e:
             logger.error(f"Error fetching documents for account {account_no}: {e}")
-            self.update_progress.emit(i, total, f"❌ Failed to fetch data form bill: {account_no} ")
-            save_text_to_csv(self.output_directory, _dummy_data(account_no))
-            raise ValueError(f"Could not fetch documents for account {account_no}: {str(e)}")
+            self.update_progress.emit(i, total, f"❌ Failed to fetch data from bill: {account_no}")
+            save_text_to_xlsx(self.output_directory, _dummy_data(account_no))
+            return  # Exit immediately instead of raising
 
         if not documents:
             self.update_progress.emit(i, total, f"⚠️ No bill found for {account_no}")
-            save_text_to_csv(self.output_directory, _dummy_data(account_no))
+            save_text_to_xlsx(self.output_directory, _dummy_data(account_no))
             return
 
         document = documents[-1]
         creation_date = document.get("CreationDate")
         if not creation_date or not PortalClient.is_in_current_month(creation_date):
             self.update_progress.emit(i, total, f"ℹ️ Old bill skipped: {account_no}")
-            save_text_to_csv(self.output_directory, _dummy_data(account_no))
+            save_text_to_xlsx(self.output_directory, _dummy_data(account_no))
             return
 
         doc_id = document.get("Id")
@@ -192,16 +191,16 @@ class ExtractionThread(QThread):
             pdf_data = await client.fetch_pdf_data(document_id=doc_id)
             await client.save_pdf(pdf_data, filepath=pdf_path)
             extracted_data = extract_pdf_data(pdf_path)
-            save_text_to_csv(self.output_directory, extracted_data)
+            save_text_to_xlsx(self.output_directory, extracted_data)
             delete_pdf(pdf_path)
             self.update_progress.emit(i, total, f"✅ Success: {account_no}")
         except Exception as e:
             logger.error(f"Error processing PDF for account {account_no}: {e}")
             if os.path.exists(pdf_path):
                 os.remove(pdf_path)
-            self.update_progress.emit(i, total, f"❌ Failed to processing PDF this account: {account_no}")
-            save_text_to_csv(self.output_directory, _dummy_data(account_no))
-            raise ValueError(f"Error processing bill for account {account_no}: {str(e)}")
+            self.update_progress.emit(i, total, f"❌ Failed to process PDF for this account: {account_no}")
+            save_text_to_xlsx(self.output_directory, _dummy_data(account_no))
+            return  # Exit immediately instead of raising
 
     async def _finalize_output(self, output_file: str):
         try:
