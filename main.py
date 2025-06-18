@@ -112,7 +112,7 @@ class ExtractionThread(QThread):
         try:
             username, password = get_user(self.user_type)
             client = PortalClient(username=username, password=password, cookies=[])
-            output_file = os.path.join(self.output_directory, "output.csv")
+            output_file = os.path.join(self.output_directory, "output.xlsx")
 
             async with client:
                 self.update_progress.emit(0, len(self.accounts_list), "⏳ Processing...")
@@ -206,7 +206,7 @@ class ExtractionThread(QThread):
         try:
             now = datetime.now()
             month_year = now.strftime("%#m-%Y") if os.name == "nt" else now.strftime("%-m-%Y")
-            renamed = os.path.join(self.output_directory, f"{self.user_type.upper()}_{month_year}.csv")
+            renamed = os.path.join(self.output_directory, f"{self.user_type.upper()}_{month_year}.xlsx")
 
             # Rename the output file
             try:
@@ -432,7 +432,7 @@ class Dashboard(QWidget):
 
         # Delete partial CSV output if exists
         try:
-            temp_csv = os.path.join(self.output_directory, "output.csv")
+            temp_csv = os.path.join(self.output_directory, "output.xlsx")
             if os.path.exists(temp_csv):
                 os.remove(temp_csv)
         except Exception as e:
