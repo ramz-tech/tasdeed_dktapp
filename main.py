@@ -448,21 +448,47 @@ class Dashboard(QWidget):
         self.layout.setCurrentIndex(0)
 
 
-if __name__ == "__main__":
-    try:
-        # Check if display is available (for Linux)
-        if sys.platform.startswith('linux') and not os.environ.get('DISPLAY'):
-            logger.error("Error: No display available. Please run in a GUI environment.")
-            sys.exit(1)
+class LoginPage(QWidget):
+    login_success = pyqtSignal()
 
-        app = QApplication(sys.argv)
-        dashboard = Dashboard()
-        dashboard.show()
-        sys.exit(app.exec_())
-    except ImportError as e:
-        logger.error(f"Missing dependency: {e}")
-        logger.info("Please install required packages: pip install -r requirements.txt")
-        sys.exit(1)
-    except Exception as e:
-        logger.error(f"Error starting application: {e}")
-        sys.exit(1)
+    def __init__(self):
+        super().__init__()
+        layout = QVBoxLayout()
+        layout.setSpacing(20)
+
+        logo = QLabel()
+        pixmap = QPixmap(resource_path("images/logo.png")).scaled(200, 200, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+        logo.setPixmap(pixmap)
+        logo.setAlignment(Qt.AlignCenter)
+
+        self.user_input = QTextEdit()
+        self.user_input.setPlaceholderText("👤 Username")
+        self.user_input.setFixedHeight(40)
+
+        self.pass_input = QTextEdit()
+        self.pass_input.setPlaceholderText("🔒 Password")
+        self.pass_input.setFixedHeight(40)
+
+        login_btn = QPushButton("🔓 Login")
+        login_btn.setStyleSheet(
+            "background-color: #4CAF50; color: white; font-size: 16px; padding: 10px; border-radius: 8px;"
+        )
+        login_btn.setCursor(Qt.PointingHandCursor)
+        login_btn.clicked.connect(self.validate_login)
+
+        for w in [self.user_input, self.pass_input]:
+            w.setStyleSheet("font-size: 16px; padding: 6px; border-radius: 6px;")
+
+        layout.addWidget(logo)
+        layout.addWidget(self.user_input)
+        layout.addWidget(self.pass_input)
+        layout.addWidget(login_btn)
+        self.setLayout(layout)
+
+    def validate_login(self):
+        u = self.user_input.toPlainText().strip()
+        p = self.pass_input.toPlainText().strip()
+        if u == "Mohammed9894" and p == "MAlazri@6502":
+            self.login_success.emit()
+        else:
+            QMessageBox.warning(self, "Login Failed", "Invalid username or password.")
