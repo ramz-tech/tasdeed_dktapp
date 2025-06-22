@@ -9,8 +9,6 @@ import shutil
 from datetime import datetime
 from typing import Tuple, Dict, List, Optional
 
-import os
-import logging
 
 # Safe log directory in AppData
 if os.name == 'nt':  # Windows
@@ -138,6 +136,9 @@ class ExtractionThread(QThread):
             return
 
     async def _process_account(self, client: PortalClient, account_no: str, i: int, total: int):
+        if not self._is_running:
+            raise asyncio.CancelledError()
+
         try:
             customer_id, customer_type = await client.search_by_text(account_no)
         except Exception as e:
@@ -387,7 +388,7 @@ class Dashboard(QWidget):
     def update_ui(self, current, total, message):
         if "✅ Success" in message:
             self.success_count += 1
-        elif "❌ Failed" in message or "Can not get" in message or "No bill found" in message or "Old bill skipped" in message:
+        elif any(pattern in message for pattern in ["❌ Failed", "Can not get", "No bill found", "Old bill skipped"]):
             self.fail_count += 1
             self.log.append(message)
 
@@ -402,14 +403,14 @@ class Dashboard(QWidget):
         self.cancel_btn.hide()
         self.finish_btn.show()
 
-        copy_target_dir = os.path.join(self.output_directory)
-        os.makedirs(copy_target_dir, exist_ok=True)
         try:
             source_dir = os.path.dirname(output_file)
-            if os.path.normpath(source_dir) != os.path.normpath(copy_target_dir):
-                shutil.copy(output_file, copy_target_dir)
-                copied_path = os.path.join(copy_target_dir, os.path.basename(output_file))
-                self.log.append(f"📂 Output also copied to: {copied_path}")
+            target_dir = os.path.abspath(self.output_directory)
+
+            if os.path.normpath(source_dir) != os.path.normpath(target_dir):
+                target_file = os.path.join(target_dir, os.path.basename(output_file))
+                shutil.copy(output_file, target_file)
+                self.log.append(f"📂 Output also copied to: {target_file}")
         except Exception as e:
             self.log.append(f"⚠️ Failed to copy file: {str(e)}")
 
@@ -422,6 +423,7 @@ class Dashboard(QWidget):
 
     def cancel_process(self):
         if self.worker and self.worker.isRunning():
+            self.worker.stop()
             self.worker.terminate()
             self.worker.wait()
 
@@ -494,9 +496,9 @@ class LoginPage(QWidget):
         self.setLayout(layout)
 
     def validate_login(self):
-        u = self.user_input.toPlainText().strip()
-        p = self.pass_input.toPlainText().strip()
-        if u == "Mohammed9894" and p == "MAlazri@6502":
+        username = self.user_input.text().strip()
+        password = self.pass_input.text().strip()
+        if username == "Mohammed9894" and password == "MAlazri@6502":
             self.login_success.emit()
         else:
             QMessageBox.warning(self, "Login Failed", "Invalid username or password.")
