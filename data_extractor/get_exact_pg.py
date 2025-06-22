@@ -111,8 +111,7 @@ class PortalClient:
                 except Exception as inner_e:
                     logger.error(f"Failed to launch browser with specific executable: {inner_e}")
                     # Try installing Playwright browsers as a last resort
-                    subprocess.run(["playwright", "install"], check=True)
-                    subprocess.run(["playwright", "install-deps"], check=True)
+                    subprocess.run(["playwright", "install", "chromium"], check=True)
                     self.browser = await self.playwright.chromium.launch(
                         headless=True,
                         args=['--no-sandbox']
