@@ -350,7 +350,14 @@ class Dashboard(QWidget):
 
         df = pd.read_excel(self.file_path, dtype={"ACCOUNTNO": str}) if self.file_path.endswith(
             ".xlsx") else pd.read_csv(self.file_path, dtype={"ACCOUNTNO": str})
+
+        required_columns = {"ACCOUNTNO", "SUBTYPE"}
+        if not required_columns.issubset(df.columns):
+            QMessageBox.critical(self, "Missing Columns", "The file must contain both ACCOUNTNO and SUBTYPE columns.")
+            return
+
         subtype = df["SUBTYPE"].dropna().unique()
+
         if len(subtype) != 1:
             QMessageBox.warning(self, "Multiple SUBTYPES", "Only one user SUBTYPE should exist in the file.")
             return
