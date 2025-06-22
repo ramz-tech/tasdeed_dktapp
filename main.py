@@ -492,3 +492,37 @@ class LoginPage(QWidget):
             self.login_success.emit()
         else:
             QMessageBox.warning(self, "Login Failed", "Invalid username or password.")
+
+if __name__ == "__main__":
+    try:
+        if sys.platform.startswith('linux') and not os.environ.get('DISPLAY'):
+            logger.error("Error: No display available. Please run in a GUI environment.")
+            sys.exit(1)
+
+        app = QApplication(sys.argv)
+
+        stacked = QStackedLayout()
+        login = LoginPage()
+        dash = Dashboard(stacked)
+
+        main = QWidget()
+        main.setLayout(stacked)
+        stacked.addWidget(login)
+        stacked.addWidget(dash)
+        stacked.setCurrentIndex(0)
+
+        login.login_success.connect(lambda: stacked.setCurrentIndex(1))
+
+        main.setWindowTitle("Tasdeed Login")
+        main.setWindowIcon(QIcon(resource_path("images/logo.png")))
+        main.resize(500, 400)
+        main.show()
+
+        sys.exit(app.exec_())
+    except ImportError as e:
+        logger.error(f"Missing dependency: {e}")
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Error starting application: {e}")
+        sys.exit(1)
+
