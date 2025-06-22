@@ -503,7 +503,7 @@ if __name__ == "__main__":
 
         stacked = QStackedLayout()
         login = LoginPage()
-        dash = Dashboard(stacked)
+        dash = Dashboard()
 
         main = QWidget()
         main.setLayout(stacked)
