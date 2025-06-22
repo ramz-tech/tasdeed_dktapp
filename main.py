@@ -56,7 +56,7 @@ else:
 from PyQt5.QtGui import QIcon, QPixmap, QFont
 from PyQt5.QtWidgets import (
     QApplication, QWidget, QLabel, QPushButton, QVBoxLayout, QTextEdit,
-    QFileDialog, QProgressBar, QMessageBox, QStackedLayout
+    QFileDialog, QProgressBar, QMessageBox, QStackedLayout, QLineEdit
 )
 from PyQt5.QtCore import Qt, QThread, pyqtSignal
 
@@ -468,13 +468,14 @@ class LoginPage(QWidget):
         logo.setPixmap(pixmap)
         logo.setAlignment(Qt.AlignCenter)
 
-        self.user_input = QTextEdit()
+        self.user_input = QLineEdit()
         self.user_input.setPlaceholderText("👤 Username")
         self.user_input.setFixedHeight(40)
 
-        self.pass_input = QTextEdit()
+        self.pass_input = QLineEdit()
         self.pass_input.setPlaceholderText("🔒 Password")
         self.pass_input.setFixedHeight(40)
+        self.pass_input.setEchoMode(QLineEdit.Password)
 
         login_btn = QPushButton("🔓 Login")
         login_btn.setStyleSheet(
